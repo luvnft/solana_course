@@ -1,26 +1,26 @@
 ---
-title: PDA Sharing
+title: Compartilhamento de PDA
 objectives:
-- Explain the security risks associated with PDA sharing
-- Derive PDAs that have discrete authority domains
-- Use Anchor’s `seeds` and `bump` constraints to validate PDA accounts
+- Explicar os riscos de segurança associados ao compartilhamento de PDA
+- Derivar PDAs que possuem domínios de autoridade discretos
+- Usar as restrições `seeds` e `bump` do Anchor para validar contas PDA
 ---
 
 # TL;DR
 
-- Using the same PDA for multiple authority domains opens your program up to the possibility of users accessing data and funds that don't belong to them
-- Prevent the same PDA from being used for multiple accounts by using seeds that are user and/or domain-specific
-- Use Anchor’s `seeds` and `bump` constraints to validate that a PDA is derived using the expected seeds and bump
+- Usar o mesmo PDA para vários domínios de autoridade abre seu programa para a possibilidade de usuários acessarem dados e fundos que não lhes pertencem
+- Evite o uso do mesmo PDA para várias contas usando sementes que são específicas do usuário e/ou domínio
+- Use as restrições `seeds` e `bump` do Anchor para validar que um PDA é derivado usando as sementes e o salto (bump) esperados
 
-# Overview
+# Visão Geral
 
-PDA sharing refers to using the same PDA as a signer across multiple users or domains. Especially when using PDAs for signing, it may seem appropriate to use a global PDA to represent the program. However, this opens up the possibility of account validation passing but a user being able to access funds, transfers, or data not belonging to them.
+Compartilhamento de PDA refere-se a usar o mesmo PDA como signatário em vários usuários ou domínios. Especialmente ao usar PDAs para assinaturas, pode parecer apropriado usar um PDA global para representar o programa. No entanto, isso abre a possibilidade de a validação da conta passar, mas um usuário ser capaz de acessar fundos, transferências ou dados que não lhe pertencem.
 
-## Insecure global PDA
+## PDA global inseguro
 
-In the example below, the `authority` of the `vault` account is a PDA derived using the `mint` address stored on the `pool` account. This PDA is passed into the instruction as the `authority` account to sign for the transfer tokens from the `vault` to the `withdraw_destination`.
+No exemplo abaixo, a `authority` da conta `vault` é um PDA derivado usando o endereço `mint` armazenado na conta `pool`. Este PDA é passado para a instrução como a conta `authority` para assinar a transferência de tokens do `vault` para o `withdraw_destination`.
 
-Using the `mint` address as a seed to derive the PDA to sign for the `vault` is insecure because multiple `pool` accounts could be created for the same `vault` token account, but a different `withdraw_destination`. By using the `mint` as a seed derive the PDA to sign for token transfers, any `pool` account could sign for the transfer of tokens from a `vault` token account to an arbitrary `withdraw_destination`.
+Usar o endereço `mint` como uma semente para derivar o PDA para assinar o `vault` é inseguro porque várias contas `pool` podem ser criadas para a mesma conta de token `vault`, mas com um `withdraw_destination` diferente. Ao usar o `mint` como uma semente para derivar o PDA para assinar transferências de tokens, qualquer conta `pool` poderia assinar a transferência de tokens de uma conta de token `vault` para um `withdraw_destination` arbitrário.
 
 ```rust
 use anchor_lang::prelude::*;
@@ -70,9 +70,9 @@ pub struct TokenPool {
 }
 ```
 
-## Secure account specific PDA
+## PDA específico de conta seguro
 
-One approach to create an account specific PDA is to use the `withdraw_destination` as a seed to derive the PDA used as the authority of the `vault` token account. This ensures the PDA signing for the CPI in the `withdraw_tokens` instruction is derived using the intended `withdraw_destination` token account. In other words, tokens from a `vault` token account can only be withdrawn to the `withdraw_destination` that was originally initialized with the `pool` account.
+Uma abordagem para criar um PDA específico de conta é usar o `withdraw_destination` como uma semente para derivar o PDA usado como autoridade da conta de token `vault`. Isso garante que o PDA que assina a CPI na instrução `withdraw_tokens` seja derivado usando a conta de token `withdraw_destination` pretendida. Em outras palavras, tokens de uma conta de token `vault` só podem ser retirados para o `withdraw_destination` que foi originalmente inicializado com a conta `pool`.
 
 ```rust
 use anchor_lang::prelude::*;
@@ -125,13 +125,13 @@ pub struct TokenPool {
 }
 ```
 
-## Anchor’s `seeds` and `bump` constraints
+## Restrições `seeds` e `bump` do Anchor
 
-PDAs can be used as both the address of an account and allow programs to sign for the PDAs they own.
+PDAs podem ser usados tanto como o endereço de uma conta quanto permitir que programas assinem pelos PDAs que possuem.
 
-The example below uses a PDA derived using the `withdraw_destination` as both the address of the `pool` account and owner of the `vault` token account. This means that only the `pool` account associated with correct `vault` and `withdraw_destination` can be used in the `withdraw_tokens` instruction.
+O exemplo abaixo usa um PDA derivado usando o `withdraw_destination` tanto como o endereço da conta `pool` quanto como proprietário da conta de token `vault`. Isso significa que apenas a conta `pool` associada ao `vault` e `withdraw_destination` corretos pode ser usada na instrução `withdraw_tokens`.
 
-You can use Anchor’s `seeds` and `bump` constraints with the `#[account(...)]` attribute to validate the `pool` account PDA. Anchor derives a PDA using the `seeds` and `bump` specified and compare against the account passed into the instruction as the `pool` account. The `has_one` constraint is used to further ensure that only the correct accounts stored on the `pool` account are passed into the instruction. 
+Você pode usar as restrições `seeds` e `bump` do Anchor com o atributo `#[account(...)]` para validar o PDA da conta `pool`. O Anchor deriva um PDA usando as `seeds` e `bump` especificados e compara com a conta passada na instrução como a conta `pool`. A restrição `has_one` é usada para garantir ainda mais que apenas as contas corretas armazenadas na conta `pool` sejam passadas para a instrução. 
 
 ```rust
 use anchor_lang::prelude::*;
@@ -188,32 +188,32 @@ pub struct TokenPool {
 }
 ```
 
-# Demo
+# Demonstração
 
-Let’s practice by creating a simple program to demonstrate how a PDA sharing can allow an attacker to withdraw tokens that don’t belong to them. This demo expands on the examples above by including the instructions to initialize the required program accounts.
+Vamos praticar criando um programa simples para demonstrar como um compartilhamento de PDA pode permitir que um atacante retire tokens que não lhe pertencem. Esta demonstração expande os exemplos acima, incluindo as instruções para inicializar as contas do programa necessárias.
 
-### 1. Starter
+### 1. Código inicial
 
-To get started, download the starter code on the `starter` branch of [this repository](https://github.com/Unboxed-Software/solana-pda-sharing/tree/starter). The starter code includes a program with two instructions and the boilerplate setup for the test file.
+Para começar, baixe o código inicial na branch `starter` deste [repositório](https://github.com/Unboxed-Software/solana-pda-sharing/tree/starter). O código inicial inclui um programa com duas instruções e a configuração padrão para o arquivo de teste.
 
-The `initialize_pool` instruction initializes a new `TokenPool` that stores a `vault`, `mint`, `withdraw_destination`, and `bump`. The `vault` is a token account where the authority is set as a PDA derived using the `mint` address.
+A instrução `initialize_pool` inicializa um novo `TokenPool` que armazena um `vault`, `mint`, `withdraw_destination` e `bump`. O `vault` é uma conta de token onde a autoridade é definida como um PDA derivado usando o endereço `mint`.
 
-The `withdraw_insecure` instruction will transfer tokens in the `vault` token account to a `withdraw_destination` token account. 
+A instrução `withdraw_insecure` transferirá tokens na conta de token `vault` para uma conta de token `withdraw_destination`.
 
-However, as written the seeds used for signing are not specific to the vault's withdraw destination, thus opening up the program to security exploits. Take a minute to familiarize yourself with the code before continuing on.
+No entanto, como escrito, as sementes usadas para assinatura não são específicas para o destino de retirada do vault, abrindo o programa para explorações de segurança. Tire um minuto para se familiarizar com o código antes de continuar.
 
-### 2. Test `withdraw_insecure` instruction
+### 2. Testar a instrução `withdraw_insecure`
 
-The test file includes the code to invoke the `initialize_pool` instruction and then mint 100 tokens to the `vault` token account. It also includes a test to invoke the `withdraw_insecure` using the intended `withdraw_destination`. This shows that the instructions can be used as intended.
+O arquivo de teste inclui o código para invocar a instrução `initialize_pool` e depois cunhar 100 tokens para a conta de token `vault`. Também inclui um teste para invocar o `withdraw_insecure` usando o `withdraw_destination` pretendido. Isso mostra que as instruções podem ser usadas conforme o pretendido.
 
-After that, there are two more tests to show how the instructions are vulnerable to exploit.
+Depois disso, há mais dois testes para mostrar como as instruções são vulneráveis à exploração.
 
-The first test invokes the `initialize_pool` instruction to create a "fake" `pool` account using the same `vault` token account, but a different `withdraw_destination`.
+O primeiro teste invoca a instrução `initialize_pool` para criar uma conta `pool` "falsa" usando a mesma conta de token `vault`, mas um `withdraw_destination` diferente.
 
-The second test withdraws from this pool, stealing funds from the vault.
+O segundo teste retira desta pool, roubando fundos do vault.
 
 ```tsx
-it("Insecure initialize allows pool to be initialized with wrong vault", async () => {
+it("Inicialização insegura permite que o pool seja inicializado com cofre errado", async () => {
     await program.methods
       .initializePool(authInsecureBump)
       .accounts({
@@ -241,7 +241,7 @@ it("Insecure initialize allows pool to be initialized with wrong vault", async (
     expect(Number(account.amount)).to.equal(100)
 })
 
-it("Insecure withdraw allows stealing from vault", async () => {
+it("A retirada insegura permite roubar do cofre", async () => {
     await program.methods
       .withdrawInsecure()
       .accounts({
@@ -259,13 +259,13 @@ it("Insecure withdraw allows stealing from vault", async () => {
 })
 ```
 
-Run `anchor test` to see that the transactions complete successfully and the `withdraw_instrucure` instruction allows the `vault` token account to be drained to a fake withdraw destination stored on the fake `pool` account.
+Execute `anchor test` para ver que as transações são concluídas com sucesso e a instrução `withdraw_insecure` permite que a conta de token `vault` seja drenada para um destino de saque falso armazenado na conta `pool` falsa.
 
-### 3. Add `initialize_pool_secure` instruction
+### 3. Adicionar instrução `initialize_pool_secure`
 
-Now let's add a new instruction to the program for securely initializing a pool. 
+Agora vamos adicionar uma nova instrução ao programa para inicializar um pool de forma segura.
 
-This new `initialize_pool_secure` instruction will initialize a `pool` account as a PDA derived using the `withdraw_destination`. It will also initialize a `vault` token account with the authority set as the `pool` PDA.
+Esta nova instrução `initialize_pool_secure` inicializará um `pool` como um PDA derivado usando o `withdraw_destination`. Também inicializará uma conta de token `vault` com a autoridade definida como o PDA do `pool`.
 
 ```rust
 pub fn initialize_pool_secure(ctx: Context<InitializePoolSecure>) -> Result<()> {
@@ -305,9 +305,9 @@ pub struct InitializePoolSecure<'info> {
 }
 ```
 
-### 4. Add `withdraw_secure` instruction
+### 4. Adicionar instrução `withdraw_secure`
 
-Next, add a `withdraw_secure` instruction. This instruction will withdraw tokens from the `vault` token account to the `withdraw_destination`. The `pool` account is validated using the `seeds` and `bump` constraints to ensure the correct PDA account is provided. The `has_one` constraints check that the correct `vault` and `withdraw_destination` token accounts are provided. 
+Em seguida, adicione uma instrução `withdraw_secure`. Esta instrução retirará tokens da conta de token `vault` para o `withdraw_destination`. A conta `pool` é validada usando as restrições `seeds` e `bump` para garantir que a conta PDA correta seja fornecida. As restrições `has_one` verificam se as contas de token `vault` e `withdraw_destination` corretas são fornecidas.
 
 ```rust
 pub fn withdraw_secure(ctx: Context<WithdrawTokensSecure>) -> Result<()> {
@@ -350,14 +350,14 @@ impl<'info> WithdrawTokensSecure<'info> {
 }
 ```
 
-### 5. Test `withdraw_secure` instruction
+### 5. Testar a instrução `withdraw_secure`
 
-Finally, return to the test file to test the `withdraw_secure` instruction and show that by narrowing the scope of our PDA signing authority, we've removed the vulnerability.
+Finalmente, volte ao arquivo de teste para testar a instrução `withdraw_secure` e mostrar que, ao restringir o escopo de nossa autoridade de assinatura PDA, removemos a vulnerabilidade.
 
-Before we write a test showing the vulnerability has been patched let's write a test that simply shows that the initialization and withdraw instructions work as expected:
+Antes de escrevermos um teste mostrando que a vulnerabilidade foi corrigida, vamos escrever um teste que simplesmente mostra que as instruções de inicialização e retirada funcionam conforme o esperado:
 
 ```typescript
-it("Secure pool initialization and withdraw works", async () => {
+it("Inicialização segura do pool e retirada funcionam", async () => {
     const withdrawDestinationAccount = await getAccount(
       provider.connection,
       withdrawDestination
@@ -405,12 +405,12 @@ it("Secure pool initialization and withdraw works", async () => {
 })
 ```
 
-Now, we'll test that the exploit no longer works. Since the `vault` authority is the `pool` PDA derived using the intended `withdraw_destination` token account, there should no longer be a way to withdraw to an account other than the intended `withdraw_destination`.
+Agora, testaremos para comprovar que a brecha de segurança não existe mais. Como a autoridade do `vault` é o PDA `pool` derivado usando a conta de token `withdraw_destination` pretendida, não deve mais haver uma maneira de retirar para uma conta diferente do `withdraw_destination` pretendido.
 
-Add a test that shows you can't call `withdraw_secure` with the wrong withdrawal destination. It can use the pool and vault created in the previous test.
+Adicione um teste que mostra que você não pode chamar `withdraw_secure` com o destino de retirada errado. Pode usar o pool e o cofre (vault) criados no teste anterior.
 
 ```typescript
-  it("Secure withdraw doesn't allow withdraw to wrong destination", async () => {
+  it("Retirada segura não permite retirada para o destino errado", async () => {
     try {
       await program.methods
         .withdrawSecure()
@@ -422,7 +422,7 @@ Add a test that shows you can't call `withdraw_secure` with the wrong withdrawal
         .signers([walletFake])
         .rpc()
 
-      assert.fail("expected error")
+      assert.fail("erro esperado")
     } catch (error) {
       console.log(error.message)
       expect(error)
@@ -430,10 +430,10 @@ Add a test that shows you can't call `withdraw_secure` with the wrong withdrawal
   })
 ```
 
-Lastly, since the `pool` account is a PDA derived using the `withdraw_destination` token account, we can’t create a fake `pool` account using the same PDA. Add one more test showing that the new `initialize_pool_secure` instruction won't let an attacker put in the wrong vault.
+Por fim, como a conta `pool` é um PDA derivado usando a conta de token `withdraw_destination`, não podemos criar uma conta `pool` falsa usando o mesmo PDA. Adicione mais um teste mostrando que a nova instrução `initialize_pool_secure` não permitirá que um atacante coloque o cofre errado.
 
 ```typescript
-it("Secure pool initialization doesn't allow wrong vault", async () => {
+it("Inicialização segura da conta pool não permite o cofre errado", async () => {
     try {
       await program.methods
         .initializePoolSecure()
@@ -446,7 +446,7 @@ it("Secure pool initialization doesn't allow wrong vault", async () => {
         .signers([vaultRecommended])
         .rpc()
 
-      assert.fail("expected error")
+      assert.fail("erro esperado")
     } catch (error) {
       console.log(error.message)
       expect(error)
@@ -454,7 +454,7 @@ it("Secure pool initialization doesn't allow wrong vault", async () => {
 })
 ```
 
-Run `anchor test` and to see that the new instructions don't allow an attacker to withdraw from a vault that isn't theirs.
+Execute `anchor test` e veja que as novas instruções não permitem que um atacante retire de um cofre que não seja dele.
 
 ```
   pda-sharing
@@ -469,14 +469,14 @@ unknown signer: GJcHJLot3whbY1aC9PtCsBYk5jWoZnZRJPy5uUwzktAY
     ✔ Secure pool initialization doesn't allow wrong vault
 ```
 
-And that's it! Unlike some of the other security vulnerabilities we've discussed, this one is more conceptual and can't be fixed by simply using a particular Anchor type. You'll need to think through the architecture of your program and ensure that you aren't sharing PDAs across different domains.
+E é isso! Ao contrário de algumas outras vulnerabilidades de segurança que discutimos, esta é mais conceitual e não pode ser corrigida simplesmente usando um tipo específico do Anchor. Você precisará pensar na arquitetura do seu programa e garantir que não esteja compartilhando PDAs em diferentes domínios.
 
-If you want to take a look at the final solution code you can find it on the `solution` branch of [the same repository](https://github.com/Unboxed-Software/solana-pda-sharing/tree/solution).
+Se você quiser dar uma olhada no código da solução final, pode encontrá-lo na branch `solution` do [mesmo repositório](https://github.com/Unboxed-Software/solana-pda-sharing/tree/solution).
 
-# Challenge
+# Desafio
 
-Just as with other lessons in this module, your opportunity to practice avoiding this security exploit lies in auditing your own or other programs.
+Assim como em outras lições deste módulo, sua oportunidade de praticar evitando esta exploração de segurança está em auditar seus próprios programas ou de outras pessoas.
 
-Take some time to review at least one program and look for potential vulnerabilities in its PDA structure. PDAs used for signing should be narrow and focused on a single domain as much as possible.
+Reserve um tempo para revisar pelo menos um programa e procurar por vulnerabilidades potenciais em sua estrutura de PDA. PDAs usados para assinaturas devem ser restritos e focados em um único domínio, tanto quanto possível.
 
-Remember, if you find a bug or exploit in somebody else's program, please alert them! If you find one in your own program, be sure to patch it right away.
+Lembre-se, se você encontrar um bug ou exploração no programa de outra pessoa, por favor alerte-os! Se encontrar um no seu próprio programa, certifique-se de corrigi-lo imediatamente.

@@ -1,70 +1,70 @@
 ---
 title: PDAs
 objectives:
-- Explain Program Derived Addresses (PDAs)
-- Explain various use cases of PDAs
-- Describe how PDAs are derived
-- Use PDA derivations to locate and retrieve data
+- Explicar Endereços Derivados de Programas (PDAs)
+- Explicar diversos casos de uso dos PDAs
+- Descrever como os PDAs são derivados
+- Usar derivações de PDAs para localizar e recuperar dados
 ---
 
 
-# TL;DR
+# Resumo
 
-- A **Program Derived Address** (PDA) is derived from a **program ID** and an optional list of **seeds**
-- PDAs are owned and controlled by the program they are derived from
-- PDA derivation provides a deterministic way to find data based on the seeds used for the derivation
-- Seeds can be used to map to the data stored in a separate PDA account
-- A program can sign instructions on behalf of the PDAs derived from its ID
+- Um **Endereço Derivado de Programa** (PDA) é derivado de um **ID de programa** e uma lista opcional de **sementes**
+- Os PDAs são possuídos e controlados pelo programa do qual são derivados
+- A derivação de PDA fornece uma maneira determinística de encontrar dados com base nas sementes usadas para a derivação
+- Sementes podem ser usadas para mapear os dados armazenados em uma conta PDA separada
+- Um programa pode assinar instruções em nome dos PDAs derivados de seu ID
 
-# Overview
+# Visão Geral
 
-## What is a Program Derived Address?
+## O que é um Endereço Derivado de Programa?
 
-Program Derived Addresses (PDAs) are account addresses designed to be signed for by a program rather than a secret key. As the name suggests, PDAs are derived using a program ID. Optionally, these derived accounts can also be found using the ID along with a set of "seeds." More on this later, but these seeds will play an important role in how we use PDAs for data storage and retrieval.
+Endereços Derivados de Programas (PDAs) são endereços de contas projetados para serem assinados por um programa ao invés de uma chave secreta. Como o nome sugere, PDAs são derivados usando um ID de programa. Opcionalmente, essas contas derivadas também podem ser encontradas usando o ID junto com um conjunto de "sementes". Mais sobre isso mais tarde, mas essas sementes desempenharão um papel importante em como usamos PDAs para armazenamento e recuperação de dados.
 
-PDAs serve two main functions:
+PDAs servem duas funções principais:
 
-1. Provide a deterministic way to find the address of a program-owned account
-2. Authorize the program from which a PDA was derived to sign on its behalf in the same way a user may sign with their secret key
+1. Fornecer uma maneira determinística de encontrar o endereço de uma conta de propriedade de um programa
+2. Autorizar o programa do qual um PDA foi derivado a assinar em seu nome da mesma forma que um usuário pode assinar com sua chave secreta
 
-In this lesson we'll focus on using PDAs to find and store data. We'll discuss signing with a PDA more thoroughly in a future lesson where we cover Cross Program Invocations (CPIs).
+Nesta lição, vamos nos concentrar em usar PDAs para encontrar e armazenar dados. Discutiremos a assinatura com um PDA mais detalhadamente em uma lição futura onde cobrimos Invocações de Programas Cruzados (CPIs).
 
-## Finding PDAs
+## Encontrando PDAs
 
-PDAs are not technically created. Rather, they are *found* or *derived* based on a program ID and one or more input seeds.
+PDAs não são tecnicamente criados. Em vez disso, eles são *encontrados* ou *derivados* com base em um ID de programa e uma ou mais sementes de entrada.
 
-Solana keypairs can be found on what is called the Ed25519 Elliptic Curve (Ed25519). Ed25519 is a deterministic signature scheme that Solana uses to generate corresponding public and secret keys. Together, we call these keypairs.
+Pares de chaves Solana podem ser encontrados no que é chamado de Curva Elíptica Ed25519 (Ed25519). Ed25519 é um esquema de assinatura determinístico que a Solana usa para gerar chaves públicas e secretas correspondentes. Juntos, chamamos esses pares de chaves.
 
-Alternatively, PDAs are addresses that lie *off* the Ed25519 curve. This means PDAs are not public keys, and don't have private keys. This property of PDAs is essential for programs to be able to sign on their behalf, but we'll cover that in a future lesson.
+Alternativamente, PDAs são endereços que estão *fora* da curva Ed25519. Isso significa que PDAs não são chaves públicas e não possuem chaves privadas. Esta propriedade dos PDAs é essencial para que os programas possam assinar em seu nome, mas abordaremos isso em uma lição futura.
 
-To find a PDA within a Solana program, we'll use the `find_program_address` function. This function takes an optional list of “seeds” and a program ID as inputs, and then returns the PDA and a bump seed.
+Para encontrar um PDA dentro de um programa Solana, usaremos a função `find_program_address`. Esta função recebe uma lista opcional de "sementes" e um ID de programa como entradas, e então retorna o PDA e uma semente de salto.
 
 ```rust
 let (pda, bump_seed) = Pubkey::find_program_address(&[user.key.as_ref(), user_input.as_bytes().as_ref(), "SEED".as_bytes()], program_id)
 ```
 
-### Seeds
+### Sementes (Seeds)
 
-“Seeds” are optional inputs used in the `find_program_address` function to derive a PDA. For example, seeds can be any combination of public keys, inputs provided by a user, or hardcoded values. A PDA can also be derived using only the program ID and no additional seeds. Using seeds to find our PDAs, however, allows us to create an arbitrary number of accounts that our program can own.
+"Sementes" são entradas opcionais usadas na função `find_program_address` para derivar um PDA. Por exemplo, sementes podem ser qualquer combinação de chaves públicas, entradas fornecidas por um usuário ou valores codificados rigidamente. Um PDA também pode ser derivado usando apenas o ID do programa e sem sementes adicionais. No entanto, usar sementes para encontrar nossos PDAs nos permite criar um número arbitrário de contas que nosso programa pode possuir.
 
-While you, the developer, determine the seeds to pass into the `find_program_address` function, the function itself provides an additional seed called a "bump seed." The cryptographic function for deriving a PDA results in a key that lies *on* the Ed25519 curve about 50% of the time. In order to ensure that the result *is not* on the Ed25519 curve and therefore does not have a secret key, the `find_program_address` function adds a numeric seed called a bump seed.
+Enquanto você, o desenvolvedor, determina as sementes para passar para a função `find_program_address`, a própria função fornece uma semente adicional chamada de "semente de salto" (bump seed). A função criptográfica para derivar um PDA resulta em uma chave que se encontra *na* curva Ed25519 cerca de 50% das vezes. Para garantir que o resultado *não esteja* na curva Ed25519 e, portanto, não tenha uma chave secreta, a função `find_program_address` adiciona uma semente numérica chamada semente de salto.
 
-The function starts by using the value `255` as the bump seed, then checks to see if the output is a valid PDA. If the result is not a valid PDA, the function decreases the bump seed by 1 and tries again (`255`, `254`, `253`, et cetera). Once a valid PDA is found, the function returns both the PDA and the bump that was used to derive the PDA.
+A função começa usando o valor `255` como a semente de salto, e então verifica se o resultado é um PDA válido. Se o resultado não for um PDA válido, a função diminui a semente de salto em 1 e tenta novamente (`255`, `254`, `253`, etc.). Uma vez que um PDA válido é encontrado, a função retorna tanto o PDA quanto o salto que foi usado para derivar o PDA.
 
-### Under the hood of `find_program_address`
+### `find_program_address` internamente
 
-Let's take a look at the source code for `find_program_address`.
+Vamos dar uma olhada no código-fonte da função `find_program_address`.
 
 ```rust
  pub fn find_program_address(seeds: &[&[u8]], program_id: &Pubkey) -> (Pubkey, u8) {
     Self::try_find_program_address(seeds, program_id)
-        .unwrap_or_else(|| panic!("Unable to find a viable program address bump seed"))
+        .unwrap_or_else(|| panic!("Não foi possível encontrar uma semente de salto viável para o endereço do programa"))
 }
 ```
 
-Under the hood, the `find_program_address` function passes the input `seeds` and `program_id` to the `try_find_program_address` function.
+Internamente, a função `find_program_address` passa as `seeds` de entrada e o `program_id` para a função `try_find_program_address`.
 
-The `try_find_program_address` function then introduces the `bump_seed`. The `bump_seed` is a `u8` variable with a value ranging between 0 to 255. Iterating over a descending range starting from 255, a `bump_seed` is appended to the optional input seeds which are then passed to the `create_program_address` function. If the output of `create_program_address` is not a valid PDA, then the `bump_seed` is decreased by 1 and the loop continues until a valid PDA is found.
+A função `try_find_program_address` então introduz a `bump_seed`. A `bump_seed` é uma variável `u8` com um valor variando entre 0 a 255. Iterando sobre um intervalo descendente começando de 255, uma `bump_seed` é anexada às sementes de entrada opcionais, que são então passadas para a função `create_program_address`. Se a saída da `create_program_address` não for um PDA válido, então a `bump_seed` é diminuída em 1 e o loop continua até que um PDA válido seja encontrado.
 
 ```rust
 pub fn try_find_program_address(seeds: &[&[u8]], program_id: &Pubkey) -> Option<(Pubkey, u8)> {
@@ -87,7 +87,7 @@ pub fn try_find_program_address(seeds: &[&[u8]], program_id: &Pubkey) -> Option<
 }
 ```
 
-The `create_program_address` function performs a set of hash operations over the seeds and `program_id`. These operations compute a key, then verify if the computed key lies on the Ed25519 elliptic curve or not. If a valid PDA is found (i.e. an address that is *off* the curve), then the PDA is returned. Otherwise, an error is returned.
+A função `create_program_address` realiza um conjunto de operações de hash sobre as sementes e o `program_id`. Essas operações calculam uma chave e verificam se a chave calculada está na curva elíptica Ed25519 ou não. Se um PDA válido for encontrado (ou seja, um endereço que está *fora* da curva), então o PDA é retornado. Caso contrário, um erro é retornado.
 
 ```rust
 pub fn create_program_address(
@@ -111,46 +111,46 @@ pub fn create_program_address(
 }
 ```
 
-In summary, the `find_program_address` function passes our input seeds and `program_id` to the `try_find_program_address` function. The `try_find_program_address` function adds a `bump_seed` (starting from 255) to our input seeds, then calls the `create_program_address` function until a valid PDA is found. Once found, both the PDA and the `bump_seed` are returned.
+Em resumo, a função `find_program_address` passa nossas sementes de entrada e `program_id` para a função `try_find_program_address`. A função `try_find_program_address` adiciona uma `bump_seed` (começando de 255) às nossas sementes de entrada e, em seguida, chama a função `create_program_address` até que um PDA válido seja encontrado. Uma vez encontrado, tanto o PDA quanto a `bump_seed` são retornados.
 
-Note that for the same input seeds, different valid bumps will generate different valid PDAs. The `bump_seed` returned by `find_program_address` will always be the first valid PDA found. Because the function starts with a `bump_seed` value of 255 and iterates downwards to zero, the `bump_seed` that ultimately gets returned will always be the largest valid 8-bit value possible. This `bump_seed` is commonly referred to as the "*canonical bump*". To avoid confusion, it's recommended to only use the canonical bump, and to *always validate every PDA passed into your program.*
+Observe que para as mesmas sementes de entrada, diferentes salto válidos gerarão diferentes PDAs válidos. A `bump_seed` retornada pela `find_program_address` será sempre o primeiro PDA válido encontrado. Como a função começa com um valor de `bump_seed` de 255 e itera para baixo até zero, a `bump_seed` que acaba sendo retornada será sempre o maior valor válido de 8 bits possível. Esta `bump_seed` é comumente referida como o "*salto canônico*". Para evitar confusão, recomenda-se usar apenas o salto canônico e *sempre validar todo PDA passado para o seu programa.*
 
-One point to emphasize is that the `find_program_address` function only returns a Program Derived Address and the bump seed used to derive it. The `find_program_address` function does *not* initialize a new account, nor is any PDA returned by the function necessarily associated with an account that stores data.
+Um ponto a enfatizar é que a função `find_program_address` retorna apenas um Endereço Derivado de Programa e a semente de salto usada para derivá-lo. A função `find_program_address` *não* inicializa uma nova conta, nem qualquer PDA retornado pela função está necessariamente associado a uma conta que armazena dados.
 
-## Use PDA accounts to store data
+## Use contas PDA para armazenar dados
 
-Since programs themselves are stateless, program state is managed through external accounts. Given that you can use seeds for mapping and that programs can sign on their behalf, using PDA accounts to store data related to the program is an extremely common design choice. While programs can invoke the System Program to create non-PDA accounts and use those to store data as well, PDAs tend to be the way to go.
+Como os próprios programas são sem estado, o estado do programa é gerenciado por meio de contas externas. Dado que você pode usar sementes para mapeamento e que programas podem assinar em seu nome, usar contas PDA para armazenar dados relacionados ao programa é uma escolha de design extremamente comum. Embora os programas possam invocar o Programa do Sistema para criar contas não-PDA e usá-las para armazenar dados também, PDAs tendem a ser o caminho a seguir.
 
-If you need a refresher on how to store data in PDAs, have a look at the [Create a Basic Program, Part 2 - State Management lesson](./program-state-management.md).
+Se você precisa de uma revisão sobre como armazenar dados em PDAs, dê uma olhada na [lição Crie um Programa Básico, Parte 2 - Gerenciamento de Estado](./program-state-management.md).
 
-## Map to data stored in PDA accounts
+## Mapear para dados armazenados em contas PDA
 
-Storing data in PDA accounts is only half of the equation. You also need a way to retrieve that data. We'll talk about two approaches:
+Armazenar dados em contas PDA é apenas metade da equação. Você também precisa de uma maneira de recuperar esses dados. Vamos falar sobre duas abordagens:
 
-1. Creating a PDA "map" account that stores the addresses of various accounts where data is stored
-2. Strategically using seeds to locate the appropriate PDA accounts and retrieve the necessary data
+1. Criar uma conta "de mapeamento" de PDA, que armazena os endereços de várias contas onde os dados são armazenados
+2. Usar estrategicamente sementes para localizar as contas PDA apropriadas e recuperar os dados necessários
 
-### Map to data using PDA "map" accounts
+### Mapear dados usando contas "de mapeamento" de PDA
 
-One approach to organizing data storage is to store clusters of relevant data in their own PDAs and then to have a separate PDA account that stores a mapping of where all of the data is.
+Uma abordagem para organizar o armazenamento de dados é armazenar clusters de dados relevantes em seus próprios PDAs e, em seguida, ter uma conta PDA separada que armazena um mapeamento de onde todos os dados estão.
 
-For example, you might have a note-taking app whose backing program uses random seeds to generate PDA accounts and stores one note in each account. The program would also have a single global PDA "map" account that stores a mapping of users' public keys to the list of PDAs where their notes are stored. This map account would be derived using a static seed, e.g. "GLOBAL_MAPPING".
+Por exemplo, você pode ter um aplicativo de anotações cujo programa de suporte usa sementes aleatórias para gerar contas PDA e armazena uma anotação em cada conta. O programa também teria uma única conta global "de mapeamento" de PDA que armazena um mapeamento das chaves públicas dos usuários para a lista de PDAs onde suas anotações são armazenadas. Esta conta de mapeamento seria derivada usando uma semente estática, por exemplo, "GLOBAL_MAPPING".
 
-When it comes time to retrieve a user's notes, you could then look at the map account, see the list of addresses associated with a user's public key, then retrieve the account for each of those addresses.
+Quando chega a hora de recuperar as anotações de um usuário, você poderia então olhar para a conta de mapeamento, ver a lista de endereços associados à chave pública de um usuário e, em seguida, recuperar a conta de cada um desses endereços.
 
-While such a solution is perhaps more approachable for traditional web developers, it does come with some drawbacks that are particular to web3 development. Since the size of the mapping stored in the map account will grow over time, you'll either need to allocate more size than necessary to the account when you first create it, or you'll need to reallocate space for it every time a new note is created. On top of that, you'll eventually reach the account size limit of 10 megabytes.
+Embora tal solução seja talvez mais acessível para desenvolvedores web tradicionais, ela vem com algumas desvantagens que são particulares ao desenvolvimento web3. Como o tamanho do mapeamento armazenado na conta de mapeamento crescerá ao longo do tempo, você precisará alocar mais espaço do que o necessário para a conta quando a criar pela primeira vez, ou precisará realocar espaço para ela sempre que uma nova anotação for criada. Além disso, você acabará alcançando o limite de tamanho da conta de 10 megabytes.
 
-You could mitigate this issue to some degree by creating a separate map account for each user. For example, rather than having a single PDA map account for the entire program, you would construct a PDA map account per user. Each of these map accounts could be derived with the user's public key. The addresses for each note could then be stored inside the corresponding user's map account.
+Você poderia mitigar esse problema até certo ponto criando uma conta de mapeamento separada para cada usuário. Por exemplo, em vez de ter uma única conta PDA de mapeamento para todo o programa, você construiria uma conta PDA de mapeamento por usuário. Cada uma dessas contas de mapeamento poderia ser derivada com a chave pública do usuário. Os endereços de cada anotação poderiam então ser armazenados dentro da conta de mapeamento correspondente do usuário.
 
-This approach reduces the size required for each map account, but ultimately still adds an unnecessary requirement to the process: having to read the information on the map account *before* being able to find the accounts with the relevant note data.
+Essa abordagem reduz o tamanho necessário para cada conta de mapeamento, mas ainda assim adiciona um requisito desnecessário ao processo: ter que ler as informações na conta de mapeamento *antes* de poder encontrar as contas com os dados relevantes da anotação.
 
-There may be times where using this approach makes sense for your application, but we don't recommend it as your "go to" strategy.
+Pode haver momentos em que usar essa abordagem faça sentido para o seu aplicativo, mas não recomendamos isso como sua estratégia de ação.
 
-### Map to data using PDA derivation
+### Mapear dados usando derivação PDA
 
-If you're strategic about the seeds you use to derive PDAs, you can embed the required mappings into the seeds themselves. This is the natural evolution of the note-taking app example we just discussed. If you start to use the note creator's public key as a seed to create one map account per user, then why not use both the creator's public key and some other known piece of information to derive a PDA for the note itself?
+Se você for estratégico sobre as sementes que usa para derivar PDAs, pode incorporar os mapeamentos necessários nas próprias sementes. Esta é a evolução natural do exemplo do aplicativo de anotações que acabamos de discutir. Se você começar a usar a chave pública do criador da anotação como uma semente para criar uma conta de mapeamento por usuário, então por que não usar tanto a chave pública do criador quanto alguma outra informação conhecida para derivar um PDA para a própria anotação?
 
-Now, without talking about it explicitly, we’ve been mapping seeds to accounts this entire course. Think about the Movie Review program we've been built in previous lessons. This program uses a review creator's public key and the title of the movie they're reviewing to find the address that *should* be used to store the review. This approach lets the program create a unique address for every new review while also making it easy to locate a review when needed. When you want to find a user's review of "Spiderman," you know that it is stored at the PDA account whose address can be derived using the user's public key and the text "Spiderman" as seeds.
+Agora, sem falar sobre isso explicitamente, estivemos mapeando sementes para contas este curso inteiro. Pense no programa de Avaliação de Filmes que construímos em lições anteriores. Este programa usa a chave pública do criador da avaliação e o título do filme que eles estão avaliando para encontrar o endereço que *deve* ser usado para armazenar a avaliação. Essa abordagem permite que o programa crie um endereço único para cada nova avaliação e também facilita a localização de uma avaliação quando necessário. Quando você quer encontrar a avaliação de um usuário de "Homem-Aranha", você sabe que ela está armazenada na conta PDA cujo endereço pode ser derivado usando a chave pública do usuário e o texto "Homem-Aranha" como sementes.
 
 ```rust
 let (pda, bump_seed) = Pubkey::find_program_address(&[
@@ -160,15 +160,15 @@ let (pda, bump_seed) = Pubkey::find_program_address(&[
     program_id)
 ```
 
-### Associated token account addresses
+### Endereços de conta token associada
 
-Another practical example of this type of mapping is how associated token account (ATA) addresses are determined. Tokens are often held in an ATA whose address was derived using a wallet address and the mint address of a specific token. The address for an ATA is found using the `get_associated_token_address` function which takes a `wallet_address` and `token_mint_address` as inputs.
+Outro exemplo prático desse tipo de mapeamento é como os endereços de conta de token associada (ATA) são determinados. Tokens são frequentemente mantidos em uma ATA cujo endereço foi derivado usando um endereço de carteira e o endereço de cunhagem de um token específico. O endereço para uma ATA é encontrado usando a função `get_associated_token_address`, que recebe um `wallet_address` e um `token_mint_address` como entradas.
 
 ```rust
 let associated_token_address = get_associated_token_address(&wallet_address, &token_mint_address);
 ```
 
-Under the hood, the associated token address is a PDA found using the `wallet_address`, `token_program_id`, and `token_mint_address` as seeds. This provides a deterministic way to find a token account associated with any wallet address for a specific token mint.
+Internamente, o endereço de uma conta de token associada é um PDA encontrado usando o `wallet_address`, `token_program_id` e `token_mint_address` como sementes. Isso fornece uma maneira determinística de encontrar uma conta de token associada a qualquer endereço de carteira para uma cunhagem de token específica.
 
 ```rust
 fn get_associated_token_address_and_bump_seed_internal(
@@ -188,82 +188,82 @@ fn get_associated_token_address_and_bump_seed_internal(
 }
 ```
 
-The mappings between seeds and PDA accounts that you use will be highly dependent on your specific program. While this isn't a lesson on system design or architecture, it's worth calling out a few guidelines:
+Os mapeamentos entre sementes e contas PDA que você usa dependerão muito do seu programa específico. Embora esta não seja uma lição sobre design ou arquitetura de sistemas, vale a pena mencionar algumas diretrizes:
 
-- Use seeds that will be known at the time of PDA derivation
-- Be thoughtful about what data is grouped together into a single account
-- Be thoughtful about the data structure used within each account
-- Simpler is usually better
+- Use sementes que serão conhecidas no momento da derivação do PDA
+- Seja cuidadoso sobre quais dados são agrupados juntos em uma única conta
+- Seja cuidadoso sobre a estrutura de dados usada dentro de cada conta
+- O mais simples geralmente é melhor
 
-# Demo
+# Demonstração
 
-Let’s practice together with the Movie Review program we've worked on in previous lessons. No worries if you’re just jumping into this lesson without having done the previous lesson - it should be possible to follow along either way.
+Vamos praticar juntos com o programa de Avaliação de Filmes que trabalhamos em lições anteriores. Não se preocupe se você está apenas entrando nesta lição sem ter feito a lição anterior - de qualquer forma, deve ser possível acompanhar.
 
-As a refresher, the Movie Review program lets users create movie reviews. These reviews are stored in an account using a PDA derived with the initializer’s public key and the title of the movie they are reviewing.
+Como uma revisão, o programa de Avaliação de Filmes permite que os usuários criem avaliações de filmes. Essas avaliações são armazenadas em uma conta usando um PDA derivado com a chave pública do inicializador e o título do filme que está avaliando.
 
-Previously, we finished implementing the ability to update a movie review in a secure manner. In this demo, we'll add the ability for users to comment on a movie review. We'll use building this feature as an opportunity to work through how to structure the comment storage using PDA accounts.
+Anteriormente, terminamos de implementar a capacidade de atualizar uma avaliação de filme de maneira segura. Nesta demonstração, adicionaremos a capacidade dos usuários comentarem sobre uma avaliação de filme. Usaremos a construção deste recurso como uma oportunidade para trabalhar como estruturar o armazenamento de comentários usando contas PDA.
 
-### 1. Get the starter code
+### 1. Obtenha o código inicial
 
-To begin, you can find [the movie program starter code](https://github.com/Unboxed-Software/solana-movie-program/tree/starter) on the `starter` branch.
+Para começar, você pode encontrar [o código inicial do programa de filmes](https://github.com/Unboxed-Software/solana-movie-program/tree/starter) na branch `starter`.
 
-If you've been following along with the Movie Review demos, you'll notice that this is the program we’ve built out so far. Previously, we used [Solana Playground](https://beta.solpg.io/) to write, build, and deploy our code. In this lesson, we’ll build and deploy the program locally.
+Se você tem acompanhado as demonstrações do programa de Avaliação de Filmes, notará que este é o programa que construímos até agora. Anteriormente, usamos o [Solana Playground](https://beta.solpg.io/) para escrever, construir e implantar nosso código. Nesta lição, construiremos e implantaremos o programa localmente.
 
-Open the folder, then run `cargo-build-bpf` to build the program. The `cargo-build-bpf` command will output instruction to deploy the program.
+Abra a pasta e execute `cargo-build-bpf` para construir o programa. O comando `cargo-build-bpf` fornecerá instruções para implantar o programa.
 
 ```sh
 cargo-build-bpf
 ```
 
-Deploy the program by copying the output of `cargo-build-bpf` and running the `solana program deploy` command.
+Implante o programa copiando a saída do `cargo-build-bpf` e executando o comando `solana program deploy`.
 
 ```sh
-solana program deploy <PATH>
+solana program deploy <CAMINHO>
 ```
 
-You can test the program by using the movie review [frontend](https://github.com/Unboxed-Software/solana-movie-frontend/tree/solution-update-reviews) and updating the program ID with the one you’ve just deployed. Make sure you use the `solution-update-reviews` branch.
+Você pode testar o programa usando o [frontend](https://github.com/Unboxed-Software/solana-movie-frontend/tree/solution-update-reviews) de avaliação de filmes e atualizando o ID do programa com o que você acabou de implantar. Certifique-se de usar a branch `solution-update-reviews`.
 
-### 2. Plan out the account structure
+### 2. Planeje a estrutura da conta
 
-Adding comments means we need to make a few decisions about how to store the data associated with each comment. The criteria for a good structure here are:
+Adicionar comentários significa que precisamos tomar algumas decisões sobre como armazenar os dados associados a cada comentário. Os critérios para uma boa estrutura aqui são:
 
-- Not overly complicated
-- Data is easily retrievable
-- Each comment has something to link it to the review it's associated with
+- Uma estrutura não excessivamente complicada
+- Os dados são facilmente recuperáveis
+- Cada comentário tem algo para ligá-lo à avaliação com a qual está associado
 
-To do this, we'll create two new account types:
+Para fazer isso, criaremos dois novos tipos de conta:
 
-- Comment counter account
-- Comment account
+- Conta de contador de comentários
+- Conta de comentário
 
-There will be one comment counter account per review and one comment account per comment. The comment counter account will be linked to a given review by using a review's address as a seed for finding the comment counter PDA. It will also use the static string "comment" as a seed.
+Haverá uma conta de contador de comentários por avaliação e uma conta de comentário por comentário. A conta de contador de comentários será vinculada a uma determinada avaliação usando o endereço da avaliação como uma semente para encontrar o PDA do contador de comentários. Também usará a string estática "comment" como uma semente.
 
-The comment account will be linked to a review in the same way. However, it will not include the "comment" string as a seed and will instead use the *actual comment count* as a seed. That way the client can easily retrieve comments for a given review by doing the following:
+A conta de comentário será vinculada a uma avaliação da mesma maneira. No entanto, não incluirá a string "comment" como uma semente e, em vez disso, usará o *número real de comentários* como uma semente. Dessa forma, o cliente pode facilmente recuperar comentários para uma determinada avaliação fazendo o seguinte:
 
-1. Read the data on the comment counter account to determine the number of comments on a review.
-2. Where `n` is the total number of comments on the review, loop `n` times. Each iteration of the loop will derive a PDA using the review address and the current number as seeds. The result is `n` number of PDAs, each of which is the address of an account that stores a comment.
-3. Fetch the accounts for each of the `n` PDAs and read the data stored in each.
+1. Leia os dados na conta de contador de comentários para determinar o número de comentários em uma avaliação
+2. Onde `n` é o número total de comentários na avaliação, repita `n` vezes. Cada iteração do loop derivará um PDA usando o endereço da avaliação e o número atual como sementes. O resultado é `n` número de PDAs, cada um dos quais é o endereço de uma conta que armazena um comentário
+3. Busque as contas para cada um dos `n` PDAs e leia os dados armazenados em cada um
 
-This ensures that every one of our accounts can be deterministically retrieved using data that is already known ahead of time.
+Isso garante que cada uma de nossas contas possa ser recuperada de forma determinística usando dados que já são conhecidos com antecedência.
 
-In order to implement these changes, we'll need to do the following:
+Para implementar essas mudanças, precisaremos fazer o seguinte:
 
-- Define structs to represent the comment counter and comment accounts
-- Update the existing `MovieAccountState` to contain a discriminator (more on this later)
-- Add an instruction variant to represent the `add_comment` instruction
-- Update the existing `add_movie_review` instruction processing function to include creating the comment counter account
-- Create a new `add_comment` instruction processing function
+- Definir structs para representar as contas de contador de comentários e comentários de filmes
+- Atualizar o `MovieAccountState` existente para conter um discriminador (mais sobre isso mais tarde)
+- Adicionar uma variante de instrução para representar a instrução `add_comment`
+- Atualizar a função de processamento da instrução `add_movie_review` existente para incluir a criação da conta de contador de comentários
+- Criar uma nova função de processamento de instrução `add_comment`
 
-### 3. Define `MovieCommentCounter` and `MovieComment` structs
+### 3. Defina `MovieCommentCounter` e `MovieComment` structs
 
-Recall that the `state.rs` file defines the structs our program uses to populate the data field of a new account.
+Lembre-se de que o arquivo `state.rs` define as structs que nosso programa usa para preencher o campo de dados de uma nova conta.
 
-We’ll need to define two new structs to enable commenting.
+Precisaremos definir duas novas structs para habilitar comentários.
 
-1. `MovieCommentCounter` - to store a counter for the number of comments associated with a review
-2. `MovieComment` - to store data associated with each comment
+1. `MovieCommentCounter` - para armazenar um contador para o número de comentários associados a uma avaliação
+2. `MovieComment` - para armazenar dados associados a cada comentário
 
-To start, let’s define the structs we’ll be using for our program. Note that we are adding a `discriminator` field to each struct, including the existing `MovieAccountState`. Since we now have multiple account types, we need a way to only fetch the account type we need from the client. This discriminator is a string that can be used to filter through accounts when we fetch our program accounts.
+Para começar, vamos definir as structs que usaremos para nosso programa. Observe que estamos adicionando um campo `discriminator` a cada struct, incluindo o `MovieAccountState` existente. Como agora temos vários tipos de conta, precisamos de uma maneira de buscar apenas o tipo de conta de que precisamos do cliente. Este discriminador é uma string que pode ser usada para filtrar contas ao buscarmos nossas contas de programa.
 
 ```rust
 #[derive(BorshSerialize, BorshDeserialize)]
@@ -314,7 +314,7 @@ impl IsInitialized for MovieComment {
 }
 ```
 
-Since we've added a new `discriminator` field to our existing struct, the account size calculation needs to change. Let's use this as an opportunity to clean up some of our code a bit. We'll add an implementation for each of the three structs above that adds a constant `DISCRIMINATOR` and either a constant `SIZE` or function `get_account_size` so we can quickly get the size needed when initializing an account.
+Como adicionamos um novo campo `discriminator` à nossa struct existente, o cálculo do tamanho da conta precisa mudar. Vamos usar isso como uma oportunidade para limpar um pouco o nosso código. Vamos adicionar uma implementação para cada uma das três structs acima que adiciona uma constante `DISCRIMINATOR` e uma constante `SIZE` ou função `get_account_size` para que possamos obter rapidamente o tamanho necessário ao inicializar uma conta.
 
 ```rust
 impl MovieAccountState {
@@ -343,11 +343,11 @@ impl MovieComment {
 }
 ```
 
-Now everywhere we need the discriminator or account size we can use this implementation and not risk unintentional typos.
+Agora, em todos os lugares que precisamos do discriminador ou do tamanho da conta, podemos usar essa implementação e não correr o risco de erros de digitação não intencionais.
 
-### 4. Create `AddComment` instruction
+### 4. Criar instrução `AddComment`
 
-Recall that the `instruction.rs` file defines the instructions our program will accept and how to deserialize the data for each. We need to add a new instruction variant for adding comments. Let’s start by adding a new variant `AddComment` to the `MovieInstruction` enum.
+Lembre-se de que o arquivo `instruction.rs` define as instruções que nosso programa aceitará e como desserializar os dados para cada uma. Precisamos adicionar uma nova variante de instrução para adicionar comentários. Vamos começar adicionando uma nova variante `AddComment` ao enum `MovieInstruction`.
 
 ```rust
 pub enum MovieInstruction {
@@ -367,7 +367,7 @@ pub enum MovieInstruction {
 }
 ```
 
-Next, let's create a `CommentPayload` struct to represent the instruction data associated with this new instruction. Most of the data we'll include in the account are public keys associated with accounts passed into the program, so the only thing we actually need here is a single field to represent the comment text.
+Em seguida, vamos criar uma struct `CommentPayload` para representar os dados da instrução associados a esta nova instrução. A maior parte dos dados que incluiremos na conta são chaves públicas associadas a contas passadas para o programa, então a única coisa que realmente precisamos aqui é um único campo para representar o texto do comentário.
 
 ```rust
 #[derive(BorshDeserialize)]
@@ -376,7 +376,7 @@ struct CommentPayload {
 }
 ```
 
-Now let’s update how we unpack the instruction data. Notice that we’ve moved the deserialization of instruction data into each matching case using the associated payload struct for each instruction.
+Agora vamos atualizar como desempacotamos os dados da instrução. Observe que movemos a desserialização dos dados da instrução para cada caso correspondente usando a struct de carga útil associada para cada instrução.
 
 ```rust
 impl MovieInstruction {
@@ -410,15 +410,15 @@ impl MovieInstruction {
 }
 ```
 
-Lastly, let's update the `process_instruction` function in `processor.rs` to use the new instruction variant we've created.
+Por último, vamos atualizar a função `process_instruction` em `processor.rs` para usar a nova variante de instrução que criamos.
 
-In `processor.rs`, bring into scope the new structs from `state.rs`.
+Em `processor.rs`, traga para o escopo as novas structs de `state.rs`.
 
 ```rust
 use crate::state::{MovieAccountState, MovieCommentCounter, MovieComment};
 ```
 
-Then in `process_instruction` let’s match our deserialized `AddComment` instruction data to the `add_comment` function we’ll be implementing shortly.
+Em seguida, em `process_instruction`, vamos combinar nossos dados de instrução `AddComment` desserializados com a função `add_comment` que implementaremos em breve.
 
 ```rust
 pub fn process_instruction(
@@ -442,13 +442,13 @@ pub fn process_instruction(
 }
 ```
 
-### 5. Update `add_movie_review` to create comment counter account
+### 5. Atualizar `add_movie_review` para criar conta de contador de comentários
 
-Before we implement the `add_comment` function, we need to update the `add_movie_review` function to create the review's comment counter account.
+Antes de implementarmos a função `add_comment`, precisamos atualizar a função `add_movie_review` para criar a conta de contador de comentários da avaliação.
 
-Remember that this account will keep track of the total number of comments that exist for an associated review. It's address will be a PDA derived using the movie review address and the word “comment” as seeds. Note that how we store the counter is simply a design choice. We could also add a “counter” field to the original movie review account.
+Lembre-se de que esta conta manterá o controle do número total de comentários que existem para uma avaliação associada. Seu endereço será um PDA derivado usando o endereço da avaliação de filme e a palavra “comment” como sementes. Observe que a forma como armazenamos o contador é simplesmente uma escolha de design. Também poderíamos adicionar um campo “counter” à conta original da avaliação de filme.
 
-Within the `add_movie_review` function, let’s add a `pda_counter` to represent the new counter account we’ll be initializing along with the movie review account. This means we now expect four accounts to be passed into the `add_movie_review` function through the `accounts` argument.
+Dentro da função `add_movie_review`, vamos adicionar um `pda_counter` para representar a nova conta de contador que estaremos inicializando junto com a conta de avaliação de filme. Isso significa que agora esperamos que quatro contas sejam passadas para a função `add_movie_review` através do argumento `accounts`.
 
 ```rust
 let account_info_iter = &mut accounts.iter();
@@ -459,20 +459,20 @@ let pda_counter = next_account_info(account_info_iter)?;
 let system_program = next_account_info(account_info_iter)?;
 ```
 
-Next, there's a check to make sure `total_len` is less than 1000 bytes, but `total_len` is no longer accurate since we added the discriminator. Let's replace `total_len` with a call to `MovieAccountState::get_account_size`:
+Em seguida, há uma verificação para garantir que `total_len` seja menor que 1000 bytes, mas `total_len` não é mais preciso desde que adicionamos o discriminador. Vamos substituir `total_len` por uma chamada para `MovieAccountState::get_account_size`:
 
 ```rust
 let account_len: usize = 1000;
 
 if MovieAccountState::get_account_size(title.clone(), description.clone()) > account_len {
-    msg!("Data length is larger than 1000 bytes");
+    msg!("O comprimento dos dados é maior que 1.000 bytes");
     return Err(ReviewError::InvalidDataLength.into());
 }
 ```
 
-Note that this also needs to be updated in the `update_movie_review` function for that instruction to work properly.
+Observe que isso também precisa ser atualizado na função `update_movie_review` para que essa instrução funcione corretamente.
 
-Once we’ve initialized the review account, we’ll also need to update the `account_data` with the new fields we specified in the `MovieAccountState` struct.
+Uma vez que inicializamos a conta da avaliação, também precisaremos atualizar o `account_data` com os novos campos que especificamos na struct `MovieAccountState`.
 
 ```rust
 account_data.discriminator = MovieAccountState::DISCRIMINATOR.to_string();
@@ -483,25 +483,25 @@ account_data.description = description;
 account_data.is_initialized = true;
 ```
 
-Finally, let’s add the logic to initialize the counter account within the `add_movie_review` function. This means:
+Finalmente, vamos adicionar a lógica para inicializar a conta de contador na função `add_movie_review`. Isso significa:
 
-1. Calculating the rent exemption amount for the counter account
-2. Deriving the counter PDA using the review address and the string "comment" as seeds
-3. Invoking the system program to create the account
-4. Set the starting counter value
-5. Serialize the account data and return from the function
+1. Calcular o valor de isenção de aluguel para a conta de contador
+2. Derivar o PDA do contador usando o endereço da avaliação e a string "comment" como sementes
+3. Invocar o programa do sistema para criar a conta
+4. Definir o valor inicial do contador
+5. Serializar os dados da conta e retornar da função
 
-All of this should be added to the end of the `add_movie_review` function before the `Ok(())`.
+Tudo isso deve ser adicionado ao final da função `add_movie_review` antes do `Ok(())`.
 
 ```rust
-msg!("create comment counter");
+msg!("criar contador de comentários");
 let rent = Rent::get()?;
 let counter_rent_lamports = rent.minimum_balance(MovieCommentCounter::SIZE);
 
 let (counter, counter_bump) =
     Pubkey::find_program_address(&[pda.as_ref(), "comment".as_ref()], program_id);
 if counter != *pda_counter.key {
-    msg!("Invalid seeds for PDA");
+    msg!("Sementes inválidas para PDA");
     return Err(ProgramError::InvalidArgument);
 }
 
@@ -520,14 +520,14 @@ invoke_signed(
     ],
     &[&[pda.as_ref(), "comment".as_ref(), &[counter_bump]]],
 )?;
-msg!("comment counter created");
+msg!("contador de comentários criado");
 
 let mut counter_data =
     try_from_slice_unchecked::<MovieCommentCounter>(&pda_counter.data.borrow()).unwrap();
 
-msg!("checking if counter account is already initialized");
+msg!("verificando se a conta de contador já está inicializada");
 if counter_data.is_initialized() {
-    msg!("Account already initialized");
+    msg!("Conta já inicializada");
     return Err(ProgramError::AccountAlreadyInitialized);
 }
 
@@ -538,18 +538,18 @@ msg!("comment count: {}", counter_data.counter);
 counter_data.serialize(&mut &mut pda_counter.data.borrow_mut()[..])?;
 ```
 
-Now when a new review is created, two accounts are initialized:
+Agora, quando uma nova avaliação é criada, duas contas são inicializadas:
 
-1. The first is the review account that stores the contents of the review. This is unchanged from the version of the program we started with.
-2. The second account stores the counter for comments
+1. A primeira é a conta da avaliação que armazena o conteúdo da avaliação. Isso não mudou em relação à versão do programa com a qual começamos.
+2. A segunda conta armazena o contador para comentários
 
-### 6. Implement `add_comment`
+### 6. Implementar `add_comment`
 
-Finally, let’s implement our `add_comment` function to create new comment accounts.
+Finalmente, vamos implementar nossa função `add_comment` para criar novas contas de comentário.
 
-When a new comment is created for a review, we will increment the count on the comment counter PDA account and derive the PDA for the comment account using the review address and current count.
+Quando um novo comentário é criado para uma avaliação, incrementaremos a contagem na conta PDA do contador de comentários e derivaremos o PDA para a conta de comentário usando o endereço da avaliação e a contagem atual.
 
-Like in other instruction processing functions, we'll start by iterating through accounts passed into the program. Then before we do anything else we need to deserialize the counter account so we have access to the current comment count:
+Como em outras funções de processamento de instrução, começaremos iterando pelas contas passadas para o programa. Então, antes de fazermos qualquer outra coisa, precisamos desserializar a conta do contador para termos acesso à contagem atual de comentários:
 
 ```rust
 pub fn add_comment(
@@ -557,8 +557,8 @@ pub fn add_comment(
     accounts: &[AccountInfo],
     comment: String
 ) -> ProgramResult {
-    msg!("Adding Comment...");
-    msg!("Comment: {}", comment);
+    msg!("Adicionando Comentário...");
+    msg!("Comentário: {}", comment);
 
     let account_info_iter = &mut accounts.iter();
 
@@ -574,13 +574,13 @@ pub fn add_comment(
 }
 ```
 
-Now that we have access to the counter data, we can continue with the remaining steps:
+Agora que temos acesso aos dados do contador, podemos continuar com as etapas restantes:
 
-1. Calculate the rent exempt amount for the new comment account
-2. Derive the PDA for the comment account using the review address and the current comment count as seeds
-3. Invoke the System Program to create the new comment account
-4. Set the appropriate values to the newly created account
-5. Serialize the account data and return from the function
+1. Calcular o valor de isenção de aluguel para a nova conta de comentário
+2. Derivar o PDA para a conta de comentário usando o endereço da avaliação e a contagem atual de comentários como sementes
+3. Invocar o Programa do Sistema para criar a nova conta de comentário
+4. Definir os valores apropriados para a nova conta criada
+5. Serializar os dados da conta e retornar da função
 
 ```rust
 pub fn add_comment(
@@ -588,8 +588,8 @@ pub fn add_comment(
     accounts: &[AccountInfo],
     comment: String
 ) -> ProgramResult {
-    msg!("Adding Comment...");
-    msg!("Comment: {}", comment);
+    msg!("Adicionando Comentário...");
+    msg!("Comentário: {}", comment);
 
     let account_info_iter = &mut accounts.iter();
 
@@ -608,7 +608,7 @@ pub fn add_comment(
 
     let (pda, bump_seed) = Pubkey::find_program_address(&[pda_review.key.as_ref(), counter_data.counter.to_be_bytes().as_ref(),], program_id);
     if pda != *pda_comment.key {
-        msg!("Invalid seeds for PDA");
+        msg!("Sementes inválidas para PDA");
         return Err(ReviewError::InvalidPDA.into())
     }
 
@@ -624,13 +624,13 @@ pub fn add_comment(
         &[&[pda_review.key.as_ref(), counter_data.counter.to_be_bytes().as_ref(), &[bump_seed]]],
     )?;
 
-    msg!("Created Comment Account");
+    msg!("Conta de comentários criada");
 
     let mut comment_data = try_from_slice_unchecked::<MovieComment>(&pda_comment.data.borrow()).unwrap();
 
-    msg!("checking if comment account is already initialized");
+    msg!("verificando se a conta de comentários já está inicializada");
     if comment_data.is_initialized() {
-        msg!("Account already initialized");
+        msg!("Conta já inicializada");
         return Err(ProgramError::AccountAlreadyInitialized);
     }
 
@@ -641,7 +641,7 @@ pub fn add_comment(
     comment_data.is_initialized = true;
     comment_data.serialize(&mut &mut pda_comment.data.borrow_mut()[..])?;
 
-    msg!("Comment Count: {}", counter_data.counter);
+    msg!("Contagem de Comentários: {}", counter_data.counter);
     counter_data.counter += 1;
     counter_data.serialize(&mut &mut pda_counter.data.borrow_mut()[..])?;
 
@@ -649,25 +649,25 @@ pub fn add_comment(
 }
 ```
 
-### 7. Build and deploy
+### 7. Compilar e implantar
 
-We're ready to build and deploy our program!
+Estamos prontos para compilar e implantar nosso programa!
 
-Build the updated program by running `cargo-build-bpf`. Then deploy the program by running the `solana program deploy` command printed to the console.
+Compile o programa atualizado executando `cargo-build-bpf`. Em seguida, implante o programa executando o comando `solana program deploy` impresso no console.
 
-You can test your program by submitting a transaction with the right instruction data. You can create your own script or feel free to use [this frontend](https://github.com/Unboxed-Software/solana-movie-frontend/tree/solution-add-comments). Be sure to use the `solution-add-comments` branch and replace the `MOVIE_REVIEW_PROGRAM_ID` in `utils/constants.ts` with your program's ID or the frontend won't work with your program.
+Você pode testar seu programa enviando uma transação com os dados de instrução corretos. Você pode criar seu próprio script ou se sentir à vontade para usar [este frontend](https://github.com/Unboxed-Software/solana-movie-frontend/tree/solution-add-comments). Certifique-se de usar a branch `solution-add-comments` e substituir o `MOVIE_REVIEW_PROGRAM_ID` em `utils/constants.ts` com o ID do seu programa ou o frontend não funcionará com seu programa.
 
-Keep in mind that we made breaking changes to the review accounts (i.e. adding a discriminator). If you were to use the same program ID that you've used previously when deploying this program, none of the reviews you created previously will show on this frontend due to a data mismatch.
+Lembre-se de que fizemos alterações significativas nas contas de avaliação (ou seja, adicionando um discriminador). Se você usar o mesmo ID de programa que usou anteriormente ao implantar este programa, nenhuma das avaliações que você criou anteriormente aparecerá neste frontend devido a uma incompatibilidade de dados.
 
-If you need more time with this project to feel comfortable with these concepts, have a look at the [solution code](https://github.com/Unboxed-Software/solana-movie-program/tree/solution-add-comments) before continuing. Note that the solution code is on the `solution-add-comments` branch of the linked repository.
+Se você precisar de mais tempo com este projeto para se sentir confortável com esses conceitos, dê uma olhada no [código da solução](https://github.com/Unboxed-Software/solana-movie-program/tree/solution-add-comments) antes de continuar. Observe que o código da solução está na branch `solution-add-comments` do repositório vinculado.
 
-# Challenge
+# Desafio
 
-Now it’s your turn to build something independently! Go ahead and work with the Student Intro program that we've used in past lessons. The Student Intro program is a Solana program that lets students introduce themselves. This program takes a user's name and a short message as the `instruction_data` and creates an account to store the data on-chain. For this challenge you should:
+Agora é a sua vez de construir algo de forma independente! Siga em frente e trabalhe com o programa Student Intro que usamos em lições passadas. O programa Student Intro é um programa Solana que permite que os alunos se apresentem. Este programa recebe o nome de um usuário e uma mensagem curta como `instruction_data` e cria uma conta para armazenar os dados on-chain. Para este desafio, você deve:
 
-1. Add an instruction allowing other users to reply to an intro
-2. Build and deploy the program locally
+1. Adicionar uma instrução permitindo que outros usuários respondam a uma introdução
+2. Compilar e implantar o programa localmente
 
-If you haven't been following along with past lessons or haven't saved your work from before, feel free to use the starter code on the `starter` branch of [this repository](https://github.com/Unboxed-Software/solana-student-intro-program/tree/starter).
+Se você não acompanhou as lições anteriores ou não salvou seu trabalho anterior, fique à vontade para usar o código inicial na branch `starter` deste [repositório](https://github.com/Unboxed-Software/solana-student-intro-program/tree/starter).
 
-Try to do this independently if you can! If you get stuck though, feel free to reference the [solution code](https://github.com/Unboxed-Software/solana-student-intro-program/tree/solution-add-replies). Note that the solution code is on the `solution-add-replies` branch and that your code may look slightly different.
+Tente fazer isso de forma independente, se puder! No entanto, se você tiver dúvidas, sinta-se à vontade para consultar o [código da solução](https://github.com/Unboxed-Software/solana-student-intro-program/tree/solution-add-replies). Observe que o código da solução está na branch `solution-add-replies` e que seu código pode parecer um pouco diferente.

@@ -1,69 +1,69 @@
 ---
-title: Read Data From The Solana Network
+title: Ler Dados da Rede Solana
 objectives:
-- Understand accounts and their addresses
-- Understand SOL and lamports
-- Use web3.js to connect to Solana and read an account balance
+- Entender contas e seus endereços
+- Entender SOL e lamports
+- Usar web3.js para conectar à Solana e ler o saldo de uma conta
 ---
 
-## TL;DR
+## Resumo
 
-- **SOL** is the name of Solana’s native token. Each Sol is made from 1 billion **Lamports**. 
-- **Accounts** store tokens, NFTs, programs, and data. For now we’ll focus on accounts that store SOL. 
-- **Addresses** point to accounts on the Solana network. Anyone can read the data in a given address. Most addresses are also **public keys**
+- **SOL** é o nome do token nativo da Solana. Cada Sol é composto por 1 bilhão de **Lamports**.
+- **Contas** armazenam tokens, NFTs, programas e dados. Por agora, focaremos em contas que armazenam SOL.
+- **Endereços** apontam para contas na rede Solana. Qualquer um pode ler os dados em um determinado endereço. A maioria dos endereços também são **chaves públicas**
 
-# Overview
+# Visão Geral
 
-## Accounts
+## Contas
 
-All data stored on Solana is stored in accounts. Accounts can store: 
+Todos os dados armazenados na Solana estão em contas. As contas podem armazenar:
 
 - SOL
-- Other tokens, like USDC
+- Outros tokens, como USDC
 - NFTs
-- Programs, like the film review program we make in this course!
-- Program data, like a review for a particular film for the program above!
+- Programas, como o programa de avaliação de filmes que construímos neste curso!
+- Dados de programas, como uma avaliação para um filme específico para o programa acima!
 
 ### SOL
 
-SOL is Solana's native token - SOL is used to pay transaction fees, pay rent for accounts, and more. SOL is sometimes shown with the `◎` symbol. Each SOL is made from 1 billion **Lamports**. In the same way that finance apps typically do math in cents (for USD), pence (for GBP), Solana apps typically use do math using Lamports and only convert to SOL to display data.  
+SOL é o token nativo da Solana - SOL é usado para pagar taxas de transação, aluguel para contas e mais. SOL às vezes é mostrado com o símbolo `◎`. Cada SOL é composto por 1 bilhão de **Lamports**. Da mesma forma que aplicativos financeiros normalmente fazem contas em centavos (para USD), pence (para GBP), aplicativos Solana normalmente usam Lamports para fazer cálculos e só convertem para SOL para exibir dados.
 
-### Addresses
+### Endereços
 
-Addresses uniquely identify accounts. Addresses are often shown as base-58 encoded strings like `dDCQNnDmNbFVi8cQhKAgXhyhXeJ625tvwsunRyRc7c8`. Most addresses on Solana are also **public keys**. As mentioned in the previous chapter, whoever controls the matching secret key controls the account - for example, the person with the secret key can send tokens from the account.
+Endereços identificam contas de forma única. Endereços são frequentemente mostrados como strings codificadas em base-58, como `dDCQNnDmNbFVi8cQhKAgXhyhXeJ625tvwsunRyRc7c8`. A maioria dos endereços na Solana também são **chaves públicas**. Como mencionado no capítulo anterior, quem controla a chave secreta correspondente controla a conta - por exemplo, a pessoa com a chave secreta pode enviar tokens da conta.
 
-## Reading from the Solana Blockchain
+## Lendo da Blockchain da Solana
 
-### Installation
+### Instalação
 
-We use an npm package called `@solana/web3.js` to do most of the work with Solana. We'll also install TypeScript and esrun, so we can run command line:
+Usamos um pacote npm chamado `@solana/web3.js` para fazer a maior parte do trabalho com a Solana. Também instalaremos o TypeScript e o esrun, para que possamos executar comandos de linha de comando:
 
 ```bash
 npm install typescript @solana/web3.js @digitak/esrun 
 ```
 
-### Connect to the Network
+### Conecte-se à rede
 
-Every interaction with the Solana network using `@solana/web3.js` is going to happen through a `Connection` object. The `Connection` object establishes a connection with a specific Solana network, called a 'cluster'. 
+Toda interação com a rede Solana usando `@solana/web3.js` ocorrerá através de um objeto `Connection`. O objeto `Connection` estabelece uma conexão com uma rede Solana específica, chamada de 'cluster'.
 
-For now we'll use the `Devnet` cluster rather than `Mainnet`. As the name suggests, the `Devnet` cluster is designed for developer use and testing.
+Por agora, usaremos o cluster `Devnet` em vez de `Mainnet`. Como o nome sugere, o cluster `Devnet` é projetado para uso e testes por desenvolvedores.
 
 ```typescript
 import { Connection, clusterApiUrl } from "@solana/web3.js";
 
 const connection = new Connection(clusterApiUrl("devnet"));
-console.log(`✅ Connected!`)
+console.log(`✅ Conectado!`)
 ```
 
-Running this TypeScript (`npx esrun example.ts`) shows:
+Executar este código TypeScript (`npx esrun example.ts`) mostra:
 
 ```
-✅ Connected!
+✅ Conectado!
 ```
 
-### Read from the Network
+### Ler da Rede
 
-To read the balance of an account:
+Para ler o saldo de uma conta:
 
 ```typescript
 import { Connection, PublicKey, clusterApiUrl } from "@solana/web3.js";
@@ -72,11 +72,11 @@ const connection = new Connection(clusterApiUrl("devnet"));
 const address = new PublicKey('CenYq6bDRB7p73EjsPEpiYN7uveyPUTdXkDkgUduboaN');
 const balance = await connection.getBalance(address);
 
-console.log(`The balance of the account at ${address} is ${balance} lamports`); 
-console.log(`✅ Finished!`)
+console.log(`O saldo da conta de endereço ${address} é de ${balance} lamports`); 
+console.log(`✅ Finalizado!`)
 ```
 
-The balance returned is in *lamports*. A lamport is the minor unit for Sol, like cents is to US Dollars, or pence is to British pounds. A single lamport represents 0.000000001 SOL. Most of the time we'll transfer, spend, store and handle SOL as Lamports, only converting to full SOL to display to users. Web3.js provides the constant `LAMPORTS_PER_SOL` for making quick conversions.
+O saldo retornado está em *lamports*. Um lamport é a unidade menor para Sol, como os cents são para Dólares Americanos, ou pennies para Libras Esterlinas. Um único lamport representa 0.000000001 SOL. Na maioria das vezes, nós transferimos, gastamos, armazenamos e lidamos com SOL como Lamports, apenas convertendo para SOL completo para exibir aos usuários. Web3.js fornece a constante `LAMPORTS_PER_SOL` para fazer conversões rápidas.
 
 ```typescript
 import { Connection, PublicKey, clusterApiUrl, LAMPORTS_PER_SOL } from "@solana/web3.js";
@@ -86,44 +86,44 @@ const address = new PublicKey('CenYq6bDRB7p73EjsPEpiYN7uveyPUTdXkDkgUduboaN');
 const balance = await connection.getBalance(address);
 const balanceInSol = balance / LAMPORTS_PER_SOL;
 
-console.log(`The balance of the account at ${address} is ${balanceInSol} SOL`); 
-console.log(`✅ Finished!`)
+console.log(`O saldo da conta de endereço ${address} é de ${balanceInSol} SOL`); 
+console.log(`✅ Finalizado!`)
 ```
 
-Running `npx esrun example.ts` will show something like:
+Executar `npx esrun example.ts` mostrará algo como:
 
 ```
-The balance of the account at CenYq6bDRB7p73EjsPEpiYN7uveyPUTdXkDkgUduboaN is 0.00114144 SOL
-✅ Finished!
+O saldo da conta de endereço CenYq6bDRB7p73EjsPEpiYN7uveyPUTdXkDkgUduboaN é de 0.00114144 SOL
+✅ Finalizado!
 ```
 
-...and just like that, we are reading data from the Solana blockchain! 
+...e assim, estamos lendo dados da blockchain Solana!
 
-# Demo
+# Demonstração
 
-Let’s practice what we’ve learned, and create a simple website that lets users check the balance at a particular address.
+Vamos praticar o que aprendemos e criar um site simples que permite aos usuários verificar o saldo em um endereço específico.
 
-It’ll look something like this:
+Terá mais ou menos esta aparência:
 
-![Screenshot of demo solution](../assets/intro-frontend-demo.png)
+![Captura de tela da solução de demonstração](../assets/intro-frontend-demo.png)
 
-In the interest of staying on topic, we won’t be working entirely from scratch, so [download the starter code](https://github.com/Unboxed-Software/solana-intro-frontend/tree/starter). The starter project uses Next.js and Typescript. If you’re used to a different stack, don’t worry! The web3 and Solana principles you’ll learn throughout these lessons are applicable to whichever frontend stack you’re most comfortable with.
+No interesse de manter o foco no tópico, não começaremos totalmente do zero, então [baixe o código inicial](https://github.com/Unboxed-Software/solana-intro-frontend/tree/starter). O projeto inicial usa Next.js e Typescript. Se você está acostumado com outra pilha, não se preocupe! Os princípios de web3 e Solana que você aprenderá ao longo dessas lições são aplicáveis a qualquer pilha frontend com a qual você esteja mais confortável.
 
-### 1. Get oriented
+### 1. Orientação
 
-Once you’ve got the starter code, take a look around. Install the dependencies with `npm install` and then run the app with `npm run dev`. Notice that no matter what you put into the address field, when you click “Check SOL Balance” the balance will be a placeholder value of 1000.
+Uma vez que você tenha o código inicial, dê uma olhada ao redor. Instale as dependências com `npm install` e então execute o aplicativo com `npm run dev`. Note que, não importa o que você coloque no campo de endereço, quando você clicar em “Verificar Saldo SOL”, o saldo será um valor fictício de 1000.
 
-Structurally, the app is composed of `index.tsx` and `AddressForm.tsx`. When a user submits the form, the `addressSubmittedHandler` in `index.tsx` gets called. That’s where we’ll be adding the logic to update the rest of the UI.
+Estruturalmente, o aplicativo é composto por `index.tsx` e `AddressForm.tsx`. Quando um usuário envia o formulário, o `addressSubmittedHandler` em `index.tsx` é chamado. É lá que adicionaremos a lógica para atualizar o resto da interface do usuário.
 
-### 2. Install dependencies
+### 2. Instale as dependências
 
-Use `npm install @solana/web3.js` to install our dependency on Solana’s web3 library.
+Use `npm install @solana/web3.js` para instalar nossa dependência na biblioteca web3 da Solana.
 
-### 3. Set the address balance
+### 3. Definir o saldo do endereço
 
-First, import `@solana/web3.js` at the top of `index.tsx`.
+Primeiro, importe `@solana/web3.js` no topo de `index.tsx`.
 
-Now that the library is available, let’s go into the `addressSubmittedHandler()` and create an instance of `PublicKey` using the address value from the form input. Next, create an instance of `Connection` and use it to call `getBalance()`. Pass in the value of the public key you just created. Finally, call `setBalance()`, passing in the result from `getBalance`. If you’re up to it, try this independently instead of copying from the code snippet below.
+Agora que a biblioteca está disponível, vamos entrar no `addressSubmittedHandler()` e criar uma instância de `PublicKey` usando o valor do endereço da entrada do formulário. Em seguida, crie uma instância de `Connection` e use-a para chamar `getBalance()`. Passe o valor da chave pública que você acabou de criar. Finalmente, chame `setBalance()`, passando o resultado de `getBalance`. Se você estiver disposto, tente isso independentemente em vez de copiar do trecho de código abaixo.
 
 ```typescript
 import type { NextPage } from 'next'
@@ -147,17 +147,17 @@ const Home: NextPage = () => {
 }
 ```
 
-Most of the time when dealing with SOL, the system will use lamports instead of SOL. Since computers are better at handing whole numbers than fractions, we generally do most of our transactions in whole lamports, only converting back to Sol to display the value to users. This is why we take the balance returned by Solana and divide it by `LAMPORTS_PER_SOL`. 
+Na maioria das vezes, ao lidar com SOL, o sistema usará lamports em vez de SOL. Como os computadores lidam melhor com números inteiros do que frações, geralmente fazemos a maioria de nossas transações em lamports inteiros, apenas convertendo de volta para Sol para exibir o valor para os usuários. É por isso que pegamos o saldo retornado pela Solana e o dividimos por `LAMPORTS_PER_SOL`.
 
-Before setting it to our state, we also convert it to SOL using the `LAMPORTS_PER_SOL` constant.
+Antes de definir o saldo em nosso estado, também o convertemos para SOL usando a constante `LAMPORTS_PER_SOL`.
 
-At this point you should be able to put a valid address into the form field and click “Check SOL Balance” to see both the Address and Balance populate below.
+Neste ponto, você deve ser capaz de colocar um endereço válido no campo do formulário e clicar em “Check SOL Balance” para ver tanto o Endereço quanto o Saldo aparecerem abaixo.
 
-### 4. Handle invalid addresses
+### 4. Lidar com endereços inválidos
 
-We’re just about done. The only remaining issue is that using an invalid address doesn’t show any error message or change the balance shown. If you open the developer console, you’ll see `Error: Invalid public key input`. When using the `PublicKey` constructor, you need to pass in a valid address or you’ll get this error.
+Estamos quase terminando. O único problema restante é que o uso de um endereço inválido não mostra nenhuma mensagem de erro ou altera o saldo mostrado. Se você abrir o console do desenvolvedor, verá `Error: Invalid public key input`. Ao usar o construtor `PublicKey`, você precisa passar um endereço válido ou receberá esse erro.
 
-To fix this, let’s wrap everything in a `try-catch` block and alert the user if their input is invalid.
+Para corrigir isso, vamos envolver tudo em um bloco `try-catch` e alertar o usuário se a entrada deles for inválida.
 
 ```typescript
 const addressSubmittedHandler = async (address: string) => {
@@ -175,16 +175,16 @@ const addressSubmittedHandler = async (address: string) => {
 };
 ```
 
-Notice that in the catch block we also cleared out the address and balance to avoid confusion.
+Observe que no bloco `catch` também limpamos o endereço e o saldo para evitar confusão.
 
-We did it! We have a functioning site that reads SOL balances from the Solana network. You’re well on your way to achieving your grand ambitions on Solana. If you need to spend some more time looking at this code to better understand it, have a look at the complete [solution code](https://github.com/Unboxed-Software/solana-intro-frontend). Hang on tight, these lessons will ramp up quickly.
+Conseguimos! Temos um site funcionando que lê saldos em SOL da rede Solana. Você está no caminho certo para alcançar suas grandes ambições na Solana. Se você precisar passar mais tempo olhando para este código para entendê-lo melhor, dê uma olhada no [código da solução completa](https://github.com/Unboxed-Software/solana-intro-frontend). Segure firme, essas lições vão acelerar rapidamente.
 
-# Challenge
+# Desafio
 
-Since this is the first challenge, we’ll keep it simple. Go ahead and add on to the frontend we’ve already created by including a line item after “Balance”. Have the line item display whether or not the account is an executable account or not. Hint: there’s a `getAccountInfo()` method.
+Como este é o primeiro desafio, vamos mantê-lo simples. Vá em frente e melhore o frontend que já criamos, incluindo um item de linha após "Saldo". Faça o item de linha mostrar se a conta é ou não uma conta executável. Dica: há um método `getAccountInfo()`.
 
-Since this is DevNet, your regular mainnet wallet address will _not_ be executable, so if you want an address that _will_ be executable for testing, use `CenYq6bDRB7p73EjsPEpiYN7uveyPUTdXkDkgUduboaN`.
+Como isso é a DevNet, seu endereço de carteira da mainnet regular _não_ será executável, então, se você quiser um endereço que _será_ executável para teste, use `CenYq6bDRB7p73EjsPEpiYN7uveyPUTdXkDkgUduboaN`.
 
-![Screenshot of final challenge solution](../assets/intro-frontend-challenge.png)
+![Captura de tela da solução final do desafio](../assets/intro-frontend-challenge.png)
 
-If you get stuck feel free to take a look at the [solution code](https://github.com/Unboxed-Software/solana-intro-frontend/tree/challenge-solution).
+Se você tiver dúvidas, sinta-se à vontade para dar uma olhada no [código da solução](https://github.com/Unboxed-Software/solana-intro-frontend/tree/challenge-solution).

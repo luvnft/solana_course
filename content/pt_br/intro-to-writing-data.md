@@ -1,34 +1,34 @@
 ---
-title: Write Data To The Solana Network
+title: Escrever Dados na Rede Solana
 objectives:
-- Explain transactions
-- Explain transaction fees
-- Use `@solana/web3.js` to send SOL
-- Use `@solana/web3.js` to sign transactions
-- Use Solana explorer to view transactions
+- Explicar transações
+- Explicar taxas de transação
+- Usar `@solana/web3.js` para enviar SOL
+- Usar `@solana/web3.js` para assinar transações
+- Usar o explorador Solana para visualizar transações
 ---
 
-# TL;DR
+# Resumo
 
-All modifications to on-chain data happen through **transactions**. Transactions are mostly a set of instructions that invoke Solana programs. Transactions are atomic, meaning they either succeed - if all the instructions have executed properly - or fail, as if the transaction hasn't been run at all. 
+Todas as modificações de dados na cadeia ocorrem através de **transações**. As transações são principalmente um conjunto de instruções que invocam programas Solana. As transações são atômicas, o que significa que elas ou têm sucesso - se todas as instruções forem executadas corretamente - ou falham, como se a transação não tivesse sido executada.
 
-# Overview
+# Visão Geral
 
-## Transactions
+## Transações
 
-Any modification to on-chain data happens through transactions sent to programs.
+Qualquer modificação de dados na cadeia ocorre através de transações enviadas para programas.
 
-Transaction instructions contain:
+As instruções da transação contêm:
 
-- an identifier of the program you intend to invoke
-- an array of accounts that will be read from and/or written to
-- data structured as a byte array that is specified to the program being invoked
+- um identificador do programa que você pretende invocar
+- um array de contas que serão lidas e/ou escritas
+- dados estruturados como um array de bytes que são especificados para o programa sendo invocado
 
-When you send a transaction to a Solana cluster, a Solana program is invoked with the instructions included in the transaction.
+Quando você envia uma transação para um cluster Solana, um programa Solana é invocado com as instruções incluídas na transação.
 
-As you might expect, `@solana/web3.js` provides helper functions for creating transactions and instructions. You can create a new transaction with the constructor, `new Transaction()`. Once created, then you can add instructions to the transaction with the `add()` method.
+Como esperado, `@solana/web3.js` fornece funções auxiliares para criar transações e instruções. Você pode criar uma nova transação com o construtor `new Transaction()` e, uma vez criada, você pode adicionar instruções à transação com o método `add()`.
 
-One of those helper function is `SystemProgram.transfer()`, which makes an instruction for transferring SOL:
+Uma dessas funções auxiliares é `SystemProgram.transfer()`, que faz uma instrução para transferir SOL:
 
 ```typescript
 const transaction = new Transaction()
@@ -42,15 +42,15 @@ const sendSolInstruction = SystemProgram.transfer({
 transaction.add(sendSolInstruction)
 ```
 
-The `SystemProgram.transfer()` function requires:
+A função `SystemProgram.transfer()` requer:
 
-- a public key corresponding to the sender account
-- a public key corresponding to the recipient account
-- the amount of SOL to send in lamports.
+- uma chave pública correspondente à conta do remetente
+- uma chave pública correspondente à conta do destinatário
+- a quantidade de SOL a ser enviada em lamports.
 
-`SystemProgram.transfer()` returns the instruction for sending SOL from the sender to the recipient. The instruction can then be added to the transaction.
+`SystemProgram.transfer()` retorna a instrução para enviar SOL do remetente para o destinatário. A instrução pode então ser adicionada à transação.
 
-Once all the instructions have been added, a transaction needs to be sent to the cluster and confirmed:
+Uma vez que todas as instruções foram adicionadas, uma transação precisa ser enviada para o cluster e confirmada:
 
 ```typescript
 const signature = sendAndConfirmTransaction(
@@ -60,17 +60,17 @@ const signature = sendAndConfirmTransaction(
 )
 ```
 
-The `sendAndConfirmTransaction()` functions takes as parameters
+A função `sendAndConfirmTransaction()` recebe como parâmetros:
 
-- a cluster connection
-- a transaction
-- an array of keypairs that will act as signers on the transaction - in this example, we only have the one signer: the sender.
+- uma conexão com o cluster
+- uma transação
+- um array de pares de chaves que atuarão como signatários na transação - neste exemplo, temos apenas um signatário: o remetente.
 
-### Instructions
+### Instruções
 
-The example of sending SOL is great for introducing you to sending transactions, but a lot of web3 development will involve calling non-native programs. In the example above, the `SystemProgram.transfer()` function ensures that you pass all the necessary data required to create the instruction, then it creates the instruction for you. When working with non-native programs, however, you’ll need to be very specific about creating instructions that are structured to match the corresponding program.
+O exemplo de enviar SOL é ótimo para introduzi-lo ao envio de transações, mas grande parte do desenvolvimento web3 envolverá a chamada de programas não nativos. No exemplo acima, a função `SystemProgram.transfer()` garante que você passe todos os dados necessários para criar a instrução, e então ela cria a instrução para você. No entanto, ao trabalhar com programas não nativos, você precisará ser muito específico ao criar instruções que estejam estruturadas para corresponder ao programa correspondente.
 
-With `@solana/web3.js`, you can create non-native instructions with the `TransactionInstruction` constructor. This constructor takes a single argument of the data type `TransactionInstructionCtorFields`.
+Com `@solana/web3.js`, você pode criar instruções não nativas com o construtor `TransactionInstruction`. Este construtor recebe um único argumento do tipo de dados `TransactionInstructionCtorFields`.
 
 ```tsx
 export type TransactionInstructionCtorFields = {
@@ -80,24 +80,24 @@ export type TransactionInstructionCtorFields = {
 };
 ```
 
-Per the definition above, the object passed to the `TransactionInstruction` constructor requires:
+Conforme a definição acima, o objeto passado para o construtor `TransactionInstruction` requer:
 
-- an array of keys of type `AccountMeta`
-- the public key for the program being called
-- an optional `Buffer` containing data to pass to the program.
+- um array de chaves do tipo `AccountMeta`
+- a chave pública para o programa que está sendo chamado
+- um `Buffer` opcional contendo dados para passar para o programa.
 
-We’ll be ignoring the `data` field for now and will revisit it in a future lesson.
+Vamos ignorar o campo `data` por enquanto e revisá-lo em uma lição futura.
 
-The `programId` field is fairly self explanatory: it’s the public key associated with the program. You’ll need to know this in advance of calling the program in the same way that you’d need to know the public key of someone to whom you want to send SOL.
+O campo `programId` é bastante autoexplicativo: é a chave pública associada ao programa. Você precisará saber isso antecipadamente antes de chamar o programa, da mesma forma que precisaria conhecer a chave pública de alguém para quem deseja enviar SOL.
 
-The `keys` array requires a bit more explanation. Each object in this array represents an account that will be read from or written to during a transaction's execution. This means you need to know the behavior of the program you are calling and ensure that you provide all of the necessary accounts in the array.
+O array `keys` requer um pouco mais de explicação. Cada objeto neste array representa uma conta que será lida ou escrita durante a execução de uma transação. Isso significa que você precisa conhecer o comportamento do programa que está chamando e garantir que forneceu todas as contas necessárias no array.
 
-Each object in the `keys` array must include the following:
-- `pubkey` - the public key of the account
-- `isSigner` - a boolean representing whether or not the account is a signer on the transaction
-- `isWritable` - a boolean representing whether or not the account is written to during the transaction's execution
+Cada objeto no array `keys` deve incluir o seguinte:
+- `pubkey` - a chave pública da conta
+- `isSigner` - um booleano que representa se a conta é ou não signatária da transação
+- `isWritable` - um booleano que representa se a conta é ou não escrita durante a execução da transação
 
-Putting this all together, we might end up with something like the following:
+Juntando tudo isso, podemos acabar com algo como o seguinte:
 
 ```tsx
 async function callProgram(
@@ -125,40 +125,40 @@ async function callProgram(
     [payer],
   );
 
-  console.log(`✅ Success! Transaction signature is: ${signature}`);
+  console.log(`✅ Sucesso! A assinatura da transação é: ${signature}`);
 }
 ```
 
-### Transaction Fees
+### Taxas de Transação
 
-Transaction fees are built into the Solana economy as compensation to the validator network for the CPU and GPU resources required in processing transactions. Solana transaction fees are deterministic.
+As taxas de transação são incorporadas à economia da Solana como compensação à rede de validadores pelos recursos de CPU e GPU necessários no processamento de transações. As taxas de transação da Solana são determinísticas.
 
-The first signer included in the array of signers on a transaction is responsible for paying the transaction fee. If this signer does not have enough SOL in their account to cover the transaction fee, the transaction will be dropped.
+O primeiro signatário incluído no array de signatários de uma transação é responsável por pagar a taxa de transação. Se este signatário não tiver SOL suficiente em sua conta para cobrir a taxa de transação, a transação será descartada.
 
-When testing, whether locally or on devnet, you can use the Solana CLI command `solana airdrop 1` to get free test SOL in your account for paying transaction fees.
+Ao testar, seja localmente ou na devnet, você pode usar o comando da CLI da Solana `solana airdrop 1` para obter SOL de teste gratuito em sua conta para pagar taxas de transação.
 
-### Solana Explorer
+### Explorador Solana
 
-![Screenshot of Solana Explorer set to Devnet](../assets/solana-explorer-devnet.png)
+![Captura de tela do Explorador Solana configurado para Devnet](../assets/solana-explorer-devnet.png)
 
-All transactions on the blockchain are publicly viewable on the [Solana Explorer](http://explorer.solana.com). For example, you could take the signature returned by `sendAndConfirmTransaction()` in the example above, search for that signature in the Solana Explorer, then see:
+Todas as transações na blockchain são visíveis publicamente no [Explorador Solana](http://explorer.solana.com). Por exemplo, você poderia pegar a assinatura retornada por `sendAndConfirmTransaction()` no exemplo acima, procurar por essa assinatura no Explorador Solana e ver:
 
-- when it occurred
-- which block it was included in
-- the transaction fee
-- and more!
+- quando ocorreu
+- em qual bloco foi incluída
+- a taxa de transação
+- e mais!
 
-![Screenshot of Solana Explorer with details about a transaction](../assets/solana-explorer-transaction-overview.png)
+![Captura de tela do Explorador Solana com detalhes sobre uma transação](../assets/solana-explorer-transaction-overview.png)
 
-# Demo
+# Demonstração
 
-We’re going to create a script to ping an on-chain program that increments a counter each time it has been pinged. This program exists on the Solana Devnet at address `ChT1B39WKLS8qUrkLvFDXMhEJ4F1XZzwUNHUt4AU9aVa`. The program stores it's data in a specific account at the address `Ah9K7dQ8EHaZqcAsgBW8w37yN2eAy3koFmUn4x3CJtod`.
+Vamos criar um script para acionar um programa on-chain que incrementa um contador cada vez que é acionado. Este programa existe na Devnet da Solana no endereço `ChT1B39WKLS8qUrkLvFDXMhEJ4F1XZzwUNHUt4AU9aVa`. O programa armazena seus dados em uma conta específica no endereço `Ah9K7dQ8EHaZqcAsgBW8w37yN2eAy3koFmUn4x3CJtod`.
 
-![Solana stores programs and data in seperate accounts](../assets/pdas-note-taking-program.svg)
+![Solana armazena programas e dados em contas separadas](../assets/pdas-note-taking-program.svg)
 
-### 1. Basic scaffolding
+### 1. Estrutura Básica
 
-We'll start by using the same packages and `.env` file we made earlier in [intro to cryptography](./intro-to-cryptography.md):
+Começaremos usando os mesmos pacotes e arquivo `.env` que fizemos anteriormente em [introdução à criptografia](./intro-to-cryptography.md):
 
 ```typescript
 import { Keypair } from "@solana/web3.js";
@@ -173,35 +173,35 @@ const connection = new web3.Connection(web3.clusterApiUrl('devnet'))
 
 ```
 
-### 4. Ping program
+### 4. Programa Ping
 
-Now that we've loaded our keypair, we need to connect to Solana’s Devnet. Let's create a connection:
+Agora que carregamos nosso par de chaves, precisamos nos conectar à Devnet da Solana. Vamos criar uma conexão:
 
 ```typescript
 const connection = new web3.Connection(web3.clusterApiUrl('devnet'))
 ```
 
-Now create an async function called `sendPingTransaction()` with two parameters requiring a connection and payer’s keypair as arguments:
+Agora crie uma função assíncrona chamada `sendPingTransaction()` com dois parâmetros exigindo uma conexão e o par de chaves do pagador como argumentos:
 
 ```tsx
 async function sendPingTransaction(connection: web3.Connection, payer: web3.Keypair) { }
 ```
 
-Inside this function, we need to:
+Dentro desta função, precisamos:
 
-1. create a transaction
-2. create an instruction
-3. add the instruction to the transaction
-4. send the transaction.
+1. criar uma transação
+2. criar uma instrução
+3. adicionar a instrução à transação
+4. enviar a transação.
 
-Remember, the most challenging piece here is including the right information in the instruction. We know the address of the program that we are calling. We also know that the program writes data to a separate account whose address we also have. Let’s add the string versions of both of those as constants at the top of the `index.ts` file:
+Lembre-se, a parte mais desafiadora aqui é incluir as informações corretas na instrução. Sabemos o endereço do programa que estamos chamando. Também sabemos que o programa escreve dados em uma conta separada, cujo endereço também temos. Vamos adicionar as versões em string de ambos como constantes no topo do arquivo `index.ts`:
 
 ```typescript
 const PING_PROGRAM_ADDRESS = new web3.PublicKey('ChT1B39WKLS8qUrkLvFDXMhEJ4F1XZzwUNHUt4AU9aVa')
 const PING_PROGRAM_DATA_ADDRESS =  new web3.PublicKey('Ah9K7dQ8EHaZqcAsgBW8w37yN2eAy3koFmUn4x3CJtod')
 ```
 
-Now, in the `sendPingTransaction()` function, let’s create a new transaction, then initialize a `PublicKey` for the program account, and another for the data account.
+Agora, na função `sendPingTransaction()`, vamos criar uma nova transação, inicializar uma `PublicKey` para a conta do programa e outra para a conta de dados.
 
 ```tsx
 const transaction = new web3.Transaction()
@@ -209,7 +209,7 @@ const programId = new web3.PublicKey(PING_PROGRAM_ADDRESS)
 const pingProgramDataId = new web3.PublicKey(PING_PROGRAM_DATA_ADDRESS)
 ```
 
-Next, let’s create the instruction. Remember, the instruction needs to include the public key for the Ping program and it also needs to include an array with all the accounts that will be read from or written to. In this example program, only the data account referenced above is needed.
+Em seguida, vamos criar a instrução. Lembre-se, a instrução precisa incluir a chave pública para o programa Ping e também precisa incluir um array com todas as contas que serão lidas ou escritas. Neste programa de exemplo, apenas a conta de dados referenciada acima é necessária.
 
 ```typescript
 const transaction = new web3.Transaction()
@@ -229,7 +229,7 @@ const instruction = new web3.TransactionInstruction({
 })
 ```
 
-Next, let’s add the instruction to the transaction we created. Then, call `sendAndConfirmTransaction()` by passing in the connection, transaction, and payer. Finally, let’s log the result of that function call so we can look it up on the Solana Explorer.
+Depois, vamos adicionar a instrução à transação que criamos. Então, chame `sendAndConfirmTransaction()` passando a conexão, a transação e o pagador. Finalmente, vamos registrar o resultado dessa chamada de função para que possamos procurá-lo no Explorador Solana.
 
 ```typescript
 const transaction = new web3.Transaction()
@@ -256,65 +256,65 @@ const signature = await web3.sendAndConfirmTransaction(
   [payer]
 )
 
-console.log(`✅ Transaction completed! Signature is ${signature}`)
+console.log(`✅ Transação concluída! A assinatura é ${signature}`)
 ```
 
 ### 5. Airdrop
 
-Now run the code with `npx esrun send-ping-instruction.ts` and see if it works. You may end up with the following error in the console:
+Agora execute o código com `npx esrun send-ping-instruction.ts` e veja se funciona. Você pode acabar com o seguinte erro no console:
 
 ```
-> Transaction simulation failed: Attempt to debit an account but found no record of a prior credit.
+> Transaction simulation failed: Attempt to debit an account but found no record of a prior credit (A simulação de transação falhou: Tentativa de débito em conta, mas não encontrou registro de crédito anterior.)
 ```
 
-If you get this error, it’s because your keypair is brand new and doesn’t have any SOL to cover the transaction fees. Let’s fix this by adding the following line before the call to `sendPingTransaction()`:
+Se você receber este erro, é porque seu par de chaves é novo e não possui SOL suficiente para cobrir as taxas de transação. Vamos resolver isso adicionando a seguinte linha antes da chamada para `sendPingTransaction()`:
 
 ```typescript
 await connection.requestAirdrop(payer.publicKey, web3.LAMPORTS_PER_SOL*1)
 ```
 
-This will deposit 1 SOL into your account which you can use for testing. This won’t work on Mainnet where it would actually have value. But it's incredibly convenient for testing locally and on Devnet.
+Isso depositará 1 SOL em sua conta, que você pode usar para testes. Isso não funcionará na Mainnet, onde teria valor real. Mas é incrivelmente conveniente para testar localmente e na Devnet.
 
-### 6. Check the Solana explorer
+### 6. Verifique o explorador Solana
 
-Now run the code again. It may take a moment or two, but now the code should work and you should see a long string printed to the console, like the following:
+Agora execute o código novamente. Pode demorar um ou dois minutos, mas agora o código deve funcionar e você deve ver uma longa string impressa no console, como a seguinte:
 
 ```
-✅ Transaction completed! Signature is 55S47uwMJprFMLhRSewkoUuzUs5V6BpNfRx21MpngRUQG3AswCzCSxvQmS3WEPWDJM7bhHm3bYBrqRshj672cUSG
+✅ Transação concluída! A assinatura é 55S47uwMJprFMLhRSewkoUuzUs5V6BpNfRx21MpngRUQG3AswCzCSxvQmS3WEPWDJM7bhHm3bYBrqRshj672cUSG
 ```
 
-Copy the transaction signature. Open a browser and go to [https://explorer.solana.com/?cluster=devnet](https://explorer.solana.com/?cluster=devnet) (the query parameter at the end of the URL will ensure that you’ll explore transactions on Devnet instead of Mainnet). Paste the signature into the search bar at the top of Solana’s Devnet explorer and hit enter. You should see all the details about the transaction. If you scroll all the way to the bottom, then you will see `Program Logs`, which show how many times the program has been pinged including your ping.
+Copie a assinatura da transação. Abra um navegador e vá para [https://explorer.solana.com/?cluster=devnet](https://explorer.solana.com/?cluster=devnet) (o parâmetro de consulta no final do URL garantirá que você explore transações na Devnet em vez da Mainnet). Cole a assinatura na barra de pesquisa na parte superior do explorador da Devnet da Solana e pressione "enter". Você deve ver todos os detalhes sobre a transação. Se você rolar até o final, verá `Program Logs`, que mostram quantas vezes o programa recebeu ping, incluindo o seu ping.
 
-![Screenshot of Solana Explorer with logs from calling the Ping program](../assets/solana-explorer-ping-result.png)
+![Captura de tela do Explorador Solana com logs da chamada do programa Ping](../assets/solana-explorer-ping-result.png)
 
-Scroll around the Explorer and look at what you're seeing:
- - The **Account Input(s)** will include: 
-  - The address of your payer - being debited 5000 lamports for the transaction
-  - The program address for the ping program
-  - The data address for the ping program
- - The **Instruction** section will contain a single instructionm, with no data - the ping program is a pretty simple program, so it doesn't need any data.
- - The **Program Instruction Logs** shows the logs from the ping program.  
+Percorra o Explorador e observe o que você está vendo:
+ - As **Entradas de Conta** incluirão: 
+  - O endereço do seu pagador - sendo debitado 5000 lamports pela transação
+  - O endereço do programa para o programa Ping
+  - O endereço de dados para o programa Ping
+ - A seção **Instrução** conterá uma única instrução, sem dados - o programa Ping é um programa bastante simples, então não precisa de dados.
+ - Os **Logs de Instrução do Programa** mostram os logs do programa Ping.
 
 [//]: # "TODO: these would make a good question-and-answer interactive once we have this content hosted on solana.com, and can support adding more interactive content easily."
 
-If you want to make it easier to look at Solana Explorer for transactions in the future, simply change your `console.log` in `sendPingTransaction()` to the following:
+Se você quiser facilitar a visualização de transações no Explorador Solana no futuro, simplesmente altere seu `console.log` em `sendPingTransaction()` para o seguinte:
 
 ```typescript
-console.log(`You can view your transaction on the Solana Explorer at:\nhttps://explorer.solana.com/tx/${signature}?cluster=devnet`)
+console.log(`Você pode visualizar sua transação no Explorador Solana em:\nhttps://explorer.solana.com/tx/${signature}?cluster=devnet`)
 ```
 
-And just like that you’re calling programs on the Solana network and writing data to chain!
+E é assim que você chama programas na rede Solana e escreve dados na cadeia!
 
-### Next steps
+### Próximos passos
 
-In the next few lessons you’ll learn how to
+Nas próximas lições, você aprenderá a:
 
-1. Send transactions safely from the browser instead of from running a script
-2. Add custom data to your instructions
-3. Deserialize data from the chain
+1. Enviar transações com segurança a partir do navegador em vez de executar um script
+2. Adicionar dados personalizados às suas instruções
+3. Desserializar dados da cadeia
 
-# Challenge
+# Desafio
 
-Go ahead and create a script from scratch that will allow you to transfer SOL from one account to another on Devnet. Be sure to print out the transaction signature so you can look at it on the Solana Explorer.
+Vá em frente e crie um script do zero que permitirá transferir SOL de uma conta para outra na Devnet. Certifique-se de imprimir a assinatura da transação para que você possa visualizá-la no Explorador Solana.
 
-If you get stuck feel free to glance at the [solution code](https://github.com/Unboxed-Software/solana-ping-client).
+Se você ficar preso, fique à vontade para dar uma olhada no [código da solução](https://github.com/Unboxed-Software/solana-ping-client).

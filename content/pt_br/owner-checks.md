@@ -1,16 +1,16 @@
 ---
-title: Owner Checks
+title: Verificação de Proprietário
 objectives:
-- Explain the security risks associated with not performing appropriate owner checks
-- Implement owner checks using long-form Rust
-- Use Anchor’s `Account<'info, T>` wrapper and an account type to automate owner checks
-- Use Anchor’s `#[account(owner = <expr>)]` constraint to explicitly define an external program that should own an account
+- Explicar os riscos de segurança associados à falta de verificação apropriada do proprietário.
+- Implementar verificações de proprietário usando o Rust de forma detalhada.
+- Usar o wrapper `Account<'info, T>` do Anchor e um tipo de conta para automatizar verificações de proprietário.
+- Usar a restrição `#[account(owner = <expr>)]` do Anchor para definir explicitamente um programa externo que deve ser o proprietário de uma conta.
 ---
 
-# TL;DR
+# Resumo
 
-- Use **Owner Checks** to verify that accounts are owned by the expected program. Without appropriate owner checks, accounts owned by unexpected programs could be used in an instruction.
-- To implement an owner check in Rust, simply check that an account’s owner matches an expected program ID
+- Utilize as **Verificações de Proprietário** para garantir que as contas sejam de propriedade do programa esperado. Sem verificações de proprietário adequadas, contas pertencentes a programas inesperados podem ser usadas em uma instrução
+- Para implementar uma verificação de proprietário em Rust, basta verificar se o proprietário de uma conta corresponde a um ID de programa esperado
 
 ```rust
 if ctx.accounts.account.owner != ctx.program_id {
@@ -18,47 +18,47 @@ if ctx.accounts.account.owner != ctx.program_id {
 }
 ```
 
-- Anchor program account types implement the `Owner` trait which allows the `Account<'info, T>` wrapper to automatically verify program ownership
-- Anchor gives you the option to explicitly define the owner of an account if it should be anything other than the currently executing program
+- Os tipos de conta do programa Anchor implementam o traço `Owner`, o que permite que o wrapper `Account<'info, T>` verifique automaticamente a propriedade do programa
+- O Anchor oferece a opção de definir explicitamente o proprietário de uma conta se for diferente do programa atualmente em execução
 
-# Overview
+# Visão Geral
 
-Owner checks are used to verify that an account passed into an instruction is owned by an expected program. This prevents accounts owned by an unexpected program from being used in an instruction.
+As verificações de proprietário são usadas para garantir que uma conta passada para uma instrução seja de propriedade de um programa esperado. Isso impede que contas pertencentes a programas inesperados sejam usadas em uma instrução.
 
-As a refresher, the `AccountInfo` struct contains the following fields. An owner check refers to checking that the `owner` field in the `AccountInfo` matches an expected program ID.
+Como lembrete, a struct `AccountInfo` contém os seguintes campos. Uma verificação de proprietário refere-se à verificação de que o campo `owner` na `AccountInfo` corresponde a um ID de programa esperado.
 
 ```jsx
-/// Account information
+/// Informações da conta
 #[derive(Clone)]
 pub struct AccountInfo<'a> {
-    /// Public key of the account
+    /// Chave pública da conta
     pub key: &'a Pubkey,
-    /// Was the transaction signed by this account's public key?
+    /// A transação foi assinada por esta chave pública da conta?
     pub is_signer: bool,
-    /// Is the account writable?
+    /// A conta pode ser escrita?
     pub is_writable: bool,
-    /// The lamports in the account.  Modifiable by programs.
+    /// Os lamports na conta. Modificável por programas.
     pub lamports: Rc<RefCell<&'a mut u64>>,
-    /// The data held in this account.  Modifiable by programs.
+    /// Os dados mantidos nesta conta. Modificável por programas.
     pub data: Rc<RefCell<&'a mut [u8]>>,
-    /// Program that owns this account
+    /// Programa que é proprietário desta conta
     pub owner: &'a Pubkey,
-    /// This account's data contains a loaded program (and is now read-only)
+    /// Os dados desta conta contêm um programa carregado (e agora são somente leitura)
     pub executable: bool,
-    /// The epoch at which this account will next owe rent
+    /// A época em que esta conta deverá pagar aluguel na próxima vez
     pub rent_epoch: Epoch,
 }
 ```
 
-### Missing owner check
+### Verificação do proprietário ausente
 
-The example below shows an `admin_instruction` intended to be accessible only by an `admin` account stored on an `admin_config` account.
+O exemplo abaixo mostra uma `admin_instruction` destinada a ser acessível apenas por uma conta `admin` armazenada em uma conta `admin_config`.
 
-Although the instruction checks the `admin` account signed the transaction and matches the `admin` field stored on the `admin_config` account, there is no owner check to verify the `admin_config` account passed into the instruction is owned by the executing program.
+Embora a instrução verifique se a conta `admin` assinou a transação e corresponde ao campo `admin` armazenado na conta `admin_config`, não há verificação de propriedade para verificar se a conta `admin_config` passada para a instrução é de propriedade do programa em execução.
 
-Since the `admin_config` is unchecked as indicated by the `AccountInfo` type, a fake `admin_config` account owned by a different program could be used in the `admin_instruction`. This means that an attacker could create a program with an `admin_config` whose data structure matches the `admin_config` of your program, set their public key as the `admin` and pass their `admin_config` account into your program. This would let them spoof your program into thinking that they are the authorized admin for your program.
+Uma vez que o `admin_config` não é verificado, conforme indicado pelo tipo `AccountInfo`, uma conta `admin_config` falsa de propriedade de um programa diferente poderia ser usada na `admin_instruction`. Isso significa que um atacante poderia criar um programa com um campo `admin_config` cuja estrutura de dados corresponde ao `admin_config` do seu programa, definir sua chave pública como o `admin` e passar sua conta `admin_config` para o seu programa. Isso permitiria que o atacante enganasse o seu programa, fazendo-o pensar que é o administrador autorizado.
 
-This simplified example only prints the `admin` to the program logs. However, you can imagine how a missing owner check could allow fake accounts to exploit an instruction.
+Este exemplo simplificado apenas imprime o `admin` nos registros do programa. No entanto, é possível imaginar como a falta de verificação de propriedade poderia permitir que contas falsas explorem a instrução.
 
 ```rust
 use anchor_lang::prelude::*;
@@ -95,9 +95,9 @@ pub struct AdminConfig {
 }
 ```
 
-### Add owner check
+### Adicionar verificação de proprietário
 
-In vanilla Rust, you could solve this problem by comparing the `owner` field on the account to the program ID. If they do not match, you would return an `IncorrectProgramId` error.
+Em Rust convencional, você pode resolver esse problema comparando o campo `owner` na conta com o ID do programa. Se eles não corresponderem, você retornaria um erro `IncorrectProgramId`.
 
 ```rust
 if ctx.accounts.admin_config.owner != ctx.program_id {
@@ -105,7 +105,7 @@ if ctx.accounts.admin_config.owner != ctx.program_id {
 }
 ```
 
-Adding an owner check prevents accounts owned by an unexpected program to be passed in as the `admin_config` account. If a fake `admin_config` account was used in the `admin_instruction`, then the transaction would fail.
+Adicionar uma verificação de proprietário impede que contas de propriedade de um programa inesperado sejam passadas como a conta `admin_config`. Se uma conta `admin_config` falsa fosse usada na `admin_instruction`, a transação falharia.
 
 ```rust
 use anchor_lang::prelude::*;
@@ -145,17 +145,17 @@ pub struct AdminConfig {
 }
 ```
 
-### Use Anchor’s `Account<'info, T>`
+### Usar `Account<'info, T>` do Anchor
 
-Anchor can make this simpler with the `Account` type.
+O Anchor pode simplificar isso com o tipo `Account`.
 
-`Account<'info, T>` is a wrapper around `AccountInfo` that verifies program ownership and deserializes underlying data into the specified account type `T`. This in turn allows you to use `Account<'info, T>` to easily validate ownership.
+`Account<'info, T>` é um wrapper que envolve `AccountInfo` e verifica a propriedade do programa e desserializa os dados subjacentes no tipo de conta especificado `T`. Isso permite que você use `Account<'info, T>` para validar facilmente a propriedade.
 
-For context, the `#[account]` attribute implements various traits for a data structure representing an account. One of these is the `Owner` trait which defines an address expected to own an account. The owner is set as the program ID specified in the `declare_id!` macro.
+Para contextualizar, o atributo `#[account]` implementa vários traits para uma estrutura de dados que representa uma conta. Um deles é o trait `Owner`, que define um endereço que se espera ser o proprietário de uma conta. O proprietário é definido como o ID do programa especificado na macro `declare_id!`.
 
-In the example below, `Account<'info, AdminConfig>` is used to validate the `admin_config`. This will automatically perform the owner check and deserialize the account data. Additionally, the `has_one` constraint is used to check that the `admin` account matches the `admin` field stored on the `admin_config` account.
+No exemplo abaixo, `Account<'info, AdminConfig>` é usado para validar o `admin_config`. Isso realizará automaticamente a verificação do proprietário e desserializará os dados da conta. Além disso, a restrição `has_one` é usada para verificar se a conta `admin` corresponde ao campo `admin` armazenado na conta `admin_config`.
 
-This way, you don’t need to clutter your instruction logic with owner checks.
+Dessa forma, você não precisa poluir a lógica da instrução com verificações de proprietário.
 
 ```rust
 use anchor_lang::prelude::*;
@@ -187,11 +187,11 @@ pub struct AdminConfig {
 }
 ```
 
-### Use Anchor’s `#[account(owner = <expr>)]` constraint
+### Usar a restrição `#[account(owner = <expr>)]` do Anchor
 
-In addition to the `Account` type, you can use an `owner` constraint. The `owner` constraint allows you to define the program that should own an account if it’s different from the currently executing one. This comes in handy if, for example, you are writing an instruction that expects an account to be a PDA derived from a different program. You can use the `seeds` and `bump` constraints and define the `owner` to properly derive and verify the address of the account passed in.
+Além do tipo `Account`, você pode usar uma restrição `owner`. A restrição `owner` permite que você defina o programa que deve ser proprietário de uma conta se for diferente do programa em execução no momento. Isso é útil, por exemplo, se você estiver escrevendo uma instrução que espera que uma conta seja derivada de um PDA de um programa diferente. Você pode usar as restrições `seeds` e `bump` e definir `owner` para derivar e verificar adequadamente o endereço da conta passada.
 
-To use the `owner` constraint, you’ll have to have access to the public key of the program you expect to own an account. You can either pass the program in as an additional account or hard-code the public key somewhere in your program.
+Para usar a restrição `owner`, você precisará ter acesso à chave pública do programa que espera ser proprietário de uma conta. Você pode passar o programa como uma conta adicional ou codificar rigidamente a chave pública em algum lugar do seu programa
 
 ```rust
 use anchor_lang::prelude::*;
@@ -230,24 +230,24 @@ pub struct AdminConfig {
 }
 ```
 
-# Demo
+# Demonstração
 
-In this demo we’ll use two programs to demonstrate how a missing owner check could allow a fake account to drain the tokens from a simplified token “vault” account (note that this is very similar to the demo from the Signer Authorization lesson).
+Nesta demonstração, usaremos dois programas para mostrar como a falta de verificação de proprietário pode permitir que uma conta falsa drenasse os tokens de uma conta "cofre" (vault) de token simplificada (observe que isso é muito semelhante à demonstração da lição de Autorização de Signatários).
 
-To help illustrate this, one program will be missing an account owner check on the vault account it withdraws tokens to.
+Para ilustrar isso, um dos programas estará sem uma verificação de proprietário na conta de cofre para a qual ele retira os tokens.
 
-The second program will be a direct clone of the first program created by a malicious user to create an account identical to the first program’s vault account.
+O segundo programa será um clone direto do primeiro programa criado por um usuário malicioso para criar uma conta idêntica à conta de cofre do primeiro programa.
 
-Without the owner check, this malicious user will be able to pass in the vault account owned by their “faked” program and the original program will still execute.
+Sem a verificação de proprietário, esse usuário malicioso poderá passar a conta de cofre de propriedade de seu programa "falso" e o programa original ainda será executado.
 
-### 1. Starter
+### 1. Código Inicial
 
-To get started, download the starter code from the `starter` branch of [this repository](https://github.com/Unboxed-Software/solana-owner-checks/tree/starter). The starter code includes two programs `clone` and `owner_check` and the boilerplate setup for the test file.
+Para começar, faça o download do código inicial na branch `starter` deste repositório: [link para o repositório](https://github.com/Unboxed-Software/solana-owner-checks/tree/starter). O código inicial inclui dois programas, `clone` e `owner_check`, e a configuração mais repetitiva para o arquivo de teste.
 
-The `owner_check` program includes two instructions:
+O programa `owner_check` inclui duas instruções:
 
-- `initialize_vault` initializes a simplified vault account that stores the addresses of a token account and an authority account
-- `insecure_withdraw` withdraws tokens from the token account, but is missing an owner check for the vault account
+- `initialize_vault` inicializa uma conta de cofre simplificada que armazena os endereços de uma conta de token e uma conta de autoridade
+- `insecure_withdraw` retira tokens da conta de token, mas está sem uma verificação de proprietário para a conta de cofre
 
 ```rust
 use anchor_lang::prelude::*;
@@ -324,7 +324,7 @@ pub struct InitializeVault<'info> {
 
 #[derive(Accounts)]
 pub struct InsecureWithdraw<'info> {
-    /// CHECK:
+    /// Verificação:
     pub vault: UncheckedAccount<'info>,
     #[account(
         mut,
@@ -345,9 +345,9 @@ pub struct Vault {
 }
 ```
 
-The `clone` program includes a single instruction:
+O programa `clone` inclui uma única instrução:
 
-- `initialize_vault` initializes a “vault” account that mimics the vault account of the `owner_check` program. It stores the address of the real vault’s token account, but allows the malicious user to put their own authority account.
+- `initialize_vault` inicializa uma conta "cofre" que imita a conta de cofre do programa `owner_check`. Ela armazena o endereço da conta de token real do cofre, mas permite que o usuário malicioso coloque sua própria conta de autoridade.
 
 ```rust
 use anchor_lang::prelude::*;
@@ -387,13 +387,13 @@ pub struct Vault {
 }
 ```
 
-### 2. Test `insecure_withdraw` instruction
+### 2. Testar a instrução `insecure_withdraw`
 
-The test file includes a test to invoke the `initialize_vault` instruction on the `owner_check` program using the provider wallet as the `authority` and then mints 100 tokens to the token account.
+O arquivo de teste inclui um teste para invocar a instrução `initialize_vault` no programa `owner_check`, usando a carteira do fornecedor como a `authority`, e então cria 100 tokens na conta de token.
 
-The test file also includes a test to invoke the `initialize_vault` instruction on the `clone` program to initialize a fake `vault` account storing the same `tokenPDA` account, but a different `authority`. Note that no new tokens are minted here.
+O arquivo de teste também inclui um teste para invocar a instrução `initialize_vault` no programa `clone`, a fim de inicializar uma conta `vault` falsa armazenando a mesma conta `tokenPDA`, mas com uma `authority` diferente. Observe que nenhum token novo é criado aqui.
 
-Let’s add a test to invoke the `insecure_withdraw` instruction. This test should pass in the cloned vault and the fake authority. Since there is no owner check to verify the `vaultClone` account is owned by the `owner_check` program, the instruction’s data validation check will pass and show `walletFake` as a valid authority. The tokens from the `tokenPDA` account will then be withdrawn to the `withdrawDestinationFake` account.
+Vamos adicionar um teste para invocar a instrução `insecure_withdraw`. Este teste deve passar a conta de cofre clonada e a de autoridade falsa. Como não há verificação de proprietário para verificar se a conta `vaultClone` é de propriedade do programa `owner_check`, a verificação de dados da instrução passará e mostrará `walletFake` como uma autoridade válida. Os tokens da conta `tokenPDA` serão então retirados para a conta `withdrawDestinationFake`.
 
 ```tsx
 describe("owner-check", () => {
@@ -418,7 +418,7 @@ describe("owner-check", () => {
 })
 ```
 
-Run `anchor test` to see that the `insecure_withdraw` completes successfully.
+Execute `anchor test` para verificar se a instrução `insecure_withdraw` é concluída com sucesso.
 
 ```bash
 owner-check
@@ -427,7 +427,7 @@ owner-check
   ✔ Insecure withdraw (409ms)
 ```
 
-Note that `vaultClone` deserializes successfully even though Anchor automatically initializes new accounts with a unique 8 byte discriminator and checks the discriminator when deserializing an account. This is because the discriminator is a hash of the account type name.
+Observe que `vaultClone` é desserializado com sucesso, mesmo que o Anchor inicialize automaticamente novas contas com um discriminador exclusivo de 8 bytes e verifique o discriminador ao desserializar uma conta. Isso ocorre porque o discriminador é um hash do nome do tipo de conta.
 
 ```rust
 #[account]
@@ -437,15 +437,15 @@ pub struct Vault {
 }
 ```
 
-Since both programs initialize identical accounts and both structs are named `Vault`, the accounts have the same discriminator even though they are owned by different programs.
+Como ambos os programas inicializam contas idênticas e ambas as estruturas são nomeadas `Vault`, as contas têm o mesmo discriminador, mesmo que sejam de propriedade de programas diferentes.
 
-### 3. Add `secure_withdraw` instruction
+### 3. Adicionar a instrução `secure_withdraw`
 
-Let’s close up this security loophole.
+Vamos fechar essa brecha de segurança.
 
-In the `lib.rs` file of the `owner_check` program add a `secure_withdraw` instruction and a `SecureWithdraw` accounts struct.
+No arquivo `lib.rs` do programa `owner_check`, adicione uma instrução `secure_withdraw` e uma struct de contas `SecureWithdraw`.
 
-In the `SecureWithdraw` struct, let’s use `Account<'info, Vault>` to ensure that an owner check is performed on the `vault` account. We’ll also use the `has_one` constraint to check that the `token_account` and `authority` passed into the instruction match the values stored on the `vault` account.
+Na struct `SecureWithdraw`, vamos usar `Account<'info, Vault>` para garantir que uma verificação de proprietário seja realizada na conta `vault`. Também usaremos a restrição `has_one` para verificar se as contas `token_account` e `authority` passadas na instrução correspondem aos valores armazenados na conta `vault`.
 
 ```rust
 #[program]
@@ -498,9 +498,9 @@ pub struct SecureWithdraw<'info> {
 }
 ```
 
-### 4. Test `secure_withdraw` instruction
+### 4. Testar a instrução `secure_withdraw`
 
-To test the `secure_withdraw` instruction, we’ll invoke the instruction twice. First, we’ll invoke the instruction using the `vaultClone` account, which we expect to fail. Then, we’ll invoke the instruction using the correct `vault` account to check that the instruction works as intended.
+Para testar a instrução `secure_withdraw`, a invocaremos duas vezes. Primeiro, a invocaremos usando a conta `vaultClone`, que esperamos que falhe. Em seguida, a invocaremos usando a conta `vault` correta para verificar se a instrução funciona conforme o esperado.
 
 ```tsx
 describe("owner-check", () => {
@@ -550,7 +550,7 @@ describe("owner-check", () => {
 })
 ```
 
-Run `anchor test` to see that the transaction using the `vaultClone` account will now return an Anchor Error while the transaction using the `vault` account completes successfully.
+Execute `anchor test` para verificar se a transação usando a conta `vaultClone` agora retornará um erro do Anchor, enquanto a transação usando a conta `vault` será concluída com sucesso.
 
 ```bash
 'Program HQYNznB3XTqxzuEqqKMAD9XkYE5BGrnv8xmkoDNcqHYB invoke [1]',
@@ -564,21 +564,21 @@ Run `anchor test` to see that the transaction using the `vaultClone` account wil
 'Program HQYNznB3XTqxzuEqqKMAD9XkYE5BGrnv8xmkoDNcqHYB failed: custom program error: 0xbbf'
 ```
 
-Here we see how using Anchor’s `Account<'info, T>` type can simplify the account validation process to automate the ownership check. Additionally, note that Anchor Errors can specify the account that causes the error (e.g. the third line of the logs above say `AnchorError caused by account: vault`). This can be very helpful when debugging.
+Aqui, vemos como o uso do tipo `Account<'info, T>` do Anchor pode simplificar o processo de validação de contas para automatizar a verificação de propriedade. Além disso, observe que os erros do Anchor podem especificar a conta que causa o erro (por exemplo, a terceira linha dos registros acima diz `AnchorError caused by account: vault.`). Isso pode ser muito útil ao depurar.
 
 ```bash
 ✔ Secure withdraw, expect error (78ms)
 ✔ Secure withdraw (10063ms)
 ```
 
-That’s all you need to ensure you check the owner on an account! Like some other exploits, it’s fairly simple to avoid but very important. Be sure to always think through which accounts should be owned by which programs and ensure that you add appropriate validation.
+Isso é tudo o que você precisa fazer para garantir a verificação de proprietário em uma conta! Como em outras explorações, é relativamente simples evitar, mas muito importante. Certifique-se sempre de pensar em quais contas devem ser de propriedade de quais programas e adicione a validação apropriada.
 
-If you want to take a look at the final solution code you can find it on the `solution` branch of [the repository](https://github.com/Unboxed-Software/solana-owner-checks/tree/solution).
+Se você quiser dar uma olhada no código da solução final, você pode encontrá-lo na branch `solution` deste [repositório](https://github.com/Unboxed-Software/solana-owner-checks/tree/solution).
 
-# Challenge
+# Desafio
 
-Just as with other lessons in this module, your opportunity to practice avoiding this security exploit lies in auditing your own or other programs.
+Assim como em outras lições deste módulo, sua oportunidade de praticar a prevenção dessa exploração de segurança está em auditar seus próprios programas ou outros programas.
 
-Take some time to review at least one program and ensure that proper owner checks are performed on the accounts passed into each instruction.
+Dedique algum tempo para revisar pelo menos um programa e garantir que as verificações de proprietário adequadas sejam realizadas nas contas passadas para cada instrução.
 
-Remember, if you find a bug or exploit in somebody else's program, please alert them! If you find one in your own program, be sure to patch it right away.
+Lembre-se, se encontrar um bug ou exploração no programa de outra pessoa, por favor, alerte-os! Se encontrar um em seu próprio programa, certifique-se de corrigi-lo imediatamente.

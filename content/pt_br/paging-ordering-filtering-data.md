@@ -1,38 +1,38 @@
 ---
-title: Page, Order, and Filter Program Data
+title: Paginar, Ordenar e Filtrar Dados do Programa
 objectives:
-- Page, order, and filter accounts
-- Prefetch accounts without data
-- Determine where in an account’s buffer layout specific data is stored
-- Prefetch accounts with a subset of data that can be used to order accounts
-- Fetch only accounts whose data matches specific criteria
-- Fetch a subset of total accounts using `getMultipleAccounts`
+- Paginar, ordenar e filtrar contas
+- Pré-carregar contas sem dados
+- Determinar onde, no layout de buffer de uma conta, dados específicos estão armazenados
+- Pré-carregar contas com um subconjunto de dados que podem ser usados para ordenar contas
+- Buscar apenas contas cujos dados correspondem a critérios específicos
+- Buscar um subconjunto do total de contas usando `getMultipleAccounts`
 ---
 
-# TL;DR
+# Resumo
 
-- This lesson delves into some functionality of the RPC calls that we used in the deserializing account data lesson
-- To save on compute time, you can fetch a large number of accounts without their data by filtering them to return just an array of public keys
-- Once you have a filtered list of public keys, you can order them and fetch the account data they belong to
+- Esta lição se aprofunda em algumas funcionalidades das chamadas RPC que usamos na lição de desserialização de dados de conta
+- Para economizar tempo de computação, você pode buscar um grande número de contas sem seus dados, filtrando-as para retornar apenas um array de chaves públicas
+- Uma vez que você tem uma lista filtrada de chaves públicas, você pode ordená-las e buscar os dados das contas a que pertencem
 
-# Overview
+# Visão Geral
 
-You may have noticed in the last lesson that while we could fetch and display a list of account data, we didn’t have any granular control over how many accounts to fetch or their order. In this lesson, we’ll learn about some configuration options for the `getProgramAccounts` function that will enable things like paging, ordering accounts, and filtering.
+Você deve ter notado na última lição que, embora pudéssemos buscar e exibir uma lista de dados de conta, não tínhamos controle granular sobre quantas contas buscar ou sua ordem. Nesta lição, aprenderemos sobre algumas opções de configuração para a função `getProgramAccounts` que permitirão coisas como paginação, ordenação de contas e filtragem.
 
-## Use `dataSlice` to only fetch data you need
+## Use `dataSlice` para buscar apenas os dados que você precisa
 
-Imagine the Movie Review app we worked on in past lessons having four million movie reviews and that the average review is 500 bytes. That would make the total download for all review accounts over 2GB. Definitely not something you want to have your frontend download every time the page refreshes.
+Imagine o aplicativo de Avaliação de Filmes no qual trabalhamos em lições passadas tendo quatro milhões de avaliações de filmes e que a média de cada avaliação é de 500 bytes. Isso faria com que o download total de todas as contas de avaliação fosse mais de 2GB. Definitivamente, não é algo que você quer que seu frontend baixe toda vez que a página é atualizada.
 
-Fortunately, the `getProgramAccounts` function that you use to get all of the accounts takes a configuration object as argument. One of the configuration options is `dataSlice` which lets you provide two things:
+Felizmente, a função `getProgramAccounts` que você usa para obter todas as contas aceita um objeto de configuração como argumento. Uma das opções de configuração é `dataSlice`, que permite fornecer duas coisas:
 
-- `offset` - the offset from the beginning of the data buffer to start the slice
-- `length` - the number of bytes to return, starting from the provided offset
+- `offset` - o deslocamento a partir do início do buffer de dados para iniciar o recorte
+- `length` - o número de bytes a serem retornados, começando a partir do deslocamento fornecido
 
-When you include a `dataSlice` in the configuration object, the function will only return the subset of the data buffer that you specified.
+Quando você inclui um `dataSlice` no objeto de configuração, a função retornará apenas o subconjunto do buffer de dados que você especificou.
 
-### Paging Accounts
+### Paginação de Contas
 
-One area this becomes helpful is with paging. If you want to have a list that displays all accounts but there are so many accounts that you don’t want to pull all the data at once, you can fetch all of the accounts but not fetch their data by using a `dataSlice` of `{ offset: 0, length: 0 }`. You can then map the result to a list of account keys whose data you can fetch only when needed.
+Uma área onde isso se torna útil é na paginação. Se você deseja ter uma lista que exibe todas as contas, mas existem tantas contas que você não deseja extrair todos os dados de uma vez, você pode buscar todas as contas, mas não buscar seus dados, usando um `dataSlice` de `{ offset: 0, length: 0 }`. Você pode, então, mapear o resultado para uma lista de chaves de conta cujos dados você pode buscar apenas quando necessário.
 
 ```tsx
 const accountsWithoutData = await connection.getProgramAccounts(
@@ -45,32 +45,32 @@ const accountsWithoutData = await connection.getProgramAccounts(
 const accountKeys = accountsWithoutData.map(account => account.pubkey)
 ```
 
-With this list of keys, you can then fetch account data in “pages” using the `getMultipleAccountsInfo` method:
+Com esta lista de chaves, você pode então buscar dados da conta em “páginas” usando o método `getMultipleAccountsInfo`:
 
 ```tsx
 const paginatedKeys = accountKeys.slice(0, 10)
 const accountInfos = await connection.getMultipleAccountsInfo(paginatedKeys)
 const deserializedObjects = accountInfos.map((accountInfo) => {
-  // put logic to deserialize accountInfo.data here
+  // insira a lógica para desserializar os dados de accountInfo.data aqui
 })
 ```
 
-### Ordering Accounts
+### Ordenando Contas
 
-The `dataSlice` option is also helpful when you need to order a list of accounts while paging. You still don’t want to fetch all the data at once, but you do need all of the keys and a way to order them up front. In this case, you need to understand the layout of the account data and configure the data slice to only be the data you need to use for ordering.
+A opção `dataSlice` também é útil quando você precisa ordenar uma lista de contas durante a paginação. Você ainda não quer buscar todos os dados de uma vez, mas precisa de todas as chaves e uma maneira de ordená-las antecipadamente. Neste caso, você precisa entender a estrutura dos dados da conta e configurar o corte de dados para ser apenas os dados que você precisa usar para ordenar.
 
-For example, you might have an account that stores contact information like so:
+Por exemplo, você pode ter uma conta que armazena informações de contato assim:
 
-- `initialized` as a boolean
-- `phoneNumber` as an unsigned, 64-bit integer
-- `firstName` as a string
-- `secondName` as a string
+- `initialized` como um booleano
+- `phoneNumber` como um inteiro sem sinal de 64 bits
+- `firstName` como uma string
+- `secondName` como uma string
 
-If you want to order all of the account keys alphabetically based on the user’s first name, you need to find out the offset where the name starts. The first field, `initialized`, takes the first byte, then `phoneNumber` takes another 8, so the `firstName` field starts at offset `1 + 8 = 9`. However, dynamic data fields in borsh use the first 4 bytes to record the length of the data, so we can skip an additional 4 bytes, making the offset 13.
+Se você deseja ordenar todas as chaves de conta alfabeticamente com base no primeiro nome do usuário, você precisa descobrir o deslocamento onde o nome começa. O primeiro campo, `initialized`, ocupa o primeiro byte, então `phoneNumber` ocupa mais 8, então o campo `firstName` começa no deslocamento `1 + 8 = 9`. No entanto, campos de dados dinâmicos em Borsh usam os primeiros 4 bytes para registrar o comprimento dos dados, então podemos pular mais 4 bytes, fazendo com que o deslocamento seja 13.
 
-You then need to determine the length to make the data slice. Since the length is variable, we can’t know for sure before fetching the data. But you can choose a length that is large enough to cover most cases and short enough to not be too much of a burden to fetch. 15 bytes is plenty for most first names, but would result in a small enough download even with a million users.
+Você então precisa determinar o comprimento para fazer o corte de dados. Como o comprimento é variável, não podemos saber com certeza antes de buscar os dados. Mas você pode escolher um comprimento que seja grande o suficiente para cobrir a maioria dos casos e curto o suficiente para não ser um grande fardo na busca. 15 bytes é suficiente para a maioria dos primeiros nomes, mas resultaria em um download suficientemente pequeno mesmo com um milhão de usuários.
 
-Once you’ve fetched accounts with the given data slice, you can use the `sort` method to sort the array before mapping it to an array of public keys.
+Uma vez que você tenha buscado as contas com o corte de dados fornecido, você pode usar o método `sort` para ordenar o array antes de mapeá-lo para um array de chaves públicas.
 
 ```tsx
 const accounts = await connection.getProgramAccounts(
@@ -91,20 +91,20 @@ const accounts = await connection.getProgramAccounts(
 const accountKeys = accounts.map(account => account.pubkey)
 ```
 
-Note that in the snippet above we don’t compare the data as given. This is because for dynamically sized types like strings, Borsh places an unsigned, 32-bit (4 byte) integer at the start to indicate the length of the data representing that field. So to compare the first names directly, we need to get the length for each, then create a data slice with a 4 byte offset and the proper length.
+Observe que no trecho acima não comparamos os dados conforme fornecidos. Isso acontece porque para tipos de tamanho dinâmico, como strings, o Borsh coloca um inteiro sem sinal de 32 bits (4 bytes) no início para indicar o comprimento dos dados que representam aquele campo. Então, para comparar os primeiros nomes diretamente, precisamos obter o comprimento de cada um, e então criar um corte de dados com um deslocamento de 4 bytes e o comprimento apropriado.
 
-## Use `filters` to only retrieve specific accounts
+## Use `filters` para recuperar apenas contas específicas
 
-Limiting the data received per account is great, but what if you only want to return accounts that match a specific criteria rather than all of them? That’s where the `filters` configuration option comes in. This option is an array that can have objects matching the following:
+Limitar os dados recebidos por conta é ótimo, mas e se você quiser retornar apenas contas que correspondam a um critério específico, em vez de todas? É aí que entra a opção de configuração `filters`. Esta opção é um array que pode ter objetos correspondendo ao seguinte:
 
-- `memcmp` - compares a provided series of bytes with program account data at a particular offset. Fields:
-    - `offset` - the number to offset into program account data before comparing data
-    - `bytes` - a base-58 encoded string representing the data to match; limited to less than 129 bytes
-- `dataSize` - compares the program account data length with the provided data size
+- `memcmp` - compara uma série de bytes fornecidos com os dados da conta do programa em um deslocamento específico. Campos:
+    - `offset` - o número para deslocar nos dados da conta do programa antes de comparar os dados
+    - `bytes` - uma string codificada em base-58 representando os dados a serem correspondidos; limitada a menos de 129 bytes
+- `dataSize` - compara o comprimento dos dados da conta do programa com o tamanho de dados fornecido
 
-These let you filter based on matching data and/or total data size.
+Esses filtros permitem que você selecione contas com base na correspondência de dados e/ou no tamanho total dos dados.
 
-For example, you could search through a list of contacts by including a `memcmp` filter:
+Por exemplo, você poderia procurar por uma lista de contatos incluindo um filtro `memcmp`:
 
 ```tsx
 async function fetchMatchingContactAccounts(connection: web3.Connection, search: string): Promise<(web3.AccountInfo<Buffer> | null)[]> {
@@ -126,26 +126,26 @@ async function fetchMatchingContactAccounts(connection: web3.Connection, search:
 }
 ```
 
-Two things to note in the example above:
+Duas coisas a observar no exemplo acima:
 
-1. We’re setting the offset to 13 because we determined previously that the offset for `firstName` in the data layout is 9 and we want to additionally skip the first 4 bytes indicating the length of the string.
-2. We’re using a third party library `bs58` to perform base-58 encoding on the search term. You can install it using `npm install bs58`.
+1. Estamos definindo o deslocamento para 13 porque determinamos anteriormente que o deslocamento para `firstName` na estrutura de dados é 9 e queremos pular adicionalmente os primeiros 4 bytes que indicam o comprimento da string.
+2. Estamos usando uma biblioteca de terceiros `bs58` para realizar a codificação base-58 no termo de busca. Você pode instalá-la usando `npm install bs58`.
 
-# Demo
+# Demonstração
 
-Remember that Movie Review app we worked on in the last two lessons? We’re going to spice it up a little by paging the review list, ordering the reviews so they aren’t so random, and adding some basic search functionality. No worries if you’re just jumping into this lesson without having looked at the previous ones - as long as you have the prerequisite knowledge, you should be able to follow the demo without having worked in this specific project yet.
+Lembra daquele aplicativo de Avaliação de Filmes em que trabalhamos nas duas últimas lições? Vamos incrementá-lo um pouco, paginando a lista de avaliações, ordenando as avaliações para que não fiquem tão aleatórias, e adicionando alguma funcionalidade básica de busca. Não se preocupe se você está apenas entrando nesta lição sem ter visto as anteriores - desde que você tenha o conhecimento prévio, você deve ser capaz de seguir a demonstração sem ter trabalhado neste projeto específico ainda.
 
-![Screenshot of movie review frontend](../assets/movie-reviews-frontend.png)
+![Captura de tela do frontend do site de avaliações de filmes](../assets/movie-reviews-frontend.png)
 
-### **1. Download the starter code**
+### **1. Baixe o código inicial**
 
-If you didn’t complete the demo from the last lesson or just want to make sure that you didn’t miss anything, you can download the [starter code](https://github.com/Unboxed-Software/solana-movie-frontend/tree/solution-deserialize-account-data).
+Se você não concluiu a demonstração da última lição ou apenas quer ter certeza de que não perdeu nada, você pode baixar o [código inicial aqui](https://github.com/Unboxed-Software/solana-movie-frontend/tree/solution-deserialize-account-data).
 
-The project is a fairly simple Next.js application. It includes the `WalletContextProvider` we created in the Wallets lesson, a `Card` component for displaying a movie review, a `MovieList` component that displays reviews in a list, a `Form` component for submitting a new review, and a `Movie.ts` file that contains a class definition for a `Movie` object.
+O projeto é uma aplicação Next.js bastante simples. Ele inclui o `WalletContextProvider` que criamos na lição sobre Carteiras, um componente `Card` para exibir uma avaliação de filme, um componente `MovieList` que exibe avaliações em uma lista, um componente `Form` para enviar uma nova avaliação e um arquivo `Movie.ts` que contém uma definição de classe para um objeto `Movie`.
 
-### 2. Add paging to the reviews
+### 2. Adicionar paginação às avaliações
 
-First things first, let’s create a space to encapsulate the code for fetching account data. Create a new file `MovieCoordinator.ts` and declare a `MovieCoordinator` class. Then let’s move the `MOVIE_REVIEW_PROGRAM_ID` constant from `MovieList` into this new file since we’ll be moving all references to it
+Primeiro, vamos criar um espaço para encapsular o código de busca de dados da conta. Crie um novo arquivo `MovieCoordinator.ts` e declare uma classe `MovieCoordinator`. Em seguida, mova a constante `MOVIE_REVIEW_PROGRAM_ID` de `MovieList` para este novo arquivo, pois moveremos todas as referências a ela.
 
 ```tsx
 const MOVIE_REVIEW_PROGRAM_ID = 'CenYq6bDRB7p73EjsPEpiYN7uveyPUTdXkDkgUduboaN'
@@ -153,9 +153,9 @@ const MOVIE_REVIEW_PROGRAM_ID = 'CenYq6bDRB7p73EjsPEpiYN7uveyPUTdXkDkgUduboaN'
 export class MovieCoordinator { }
 ```
 
-Now we can use `MovieCoordinator` to create a paging implementation. A quick note before we dive in: this will be as simple a paging implementation as possible so that we can focus on the complex part of interacting with Solana accounts. You can, and should, do better for a production application.
+Agora podemos usar o `MovieCoordinator` para criar uma implementação de paginação. Uma observação rápida antes de começarmos: esta será a implementação de paginação mais simples possível, para que possamos nos concentrar na parte complexa de interagir com as contas Solana. Você pode, e deve, fazer melhor para um aplicativo de produção.
 
-With that out of the way, let’s create a static property `accounts` of type `web3.PublicKey[]`, a static function `prefetchAccounts(connection: web3.Connection)`, and a static function `fetchPage(connection: web3.Connection, page: number, perPage: number): Promise<Movie[]>`. You’ll also need to import `@solana/web3.js` and `Movie`.
+Com isso esclarecido, vamos criar uma propriedade estática `accounts` do tipo `web3.PublicKey[]`, uma função estática `prefetchAccounts(connection: web3.Connection)`, e uma função estática `fetchPage(connection: web3.Connection, page: number, perPage: number): Promise<Movie[]>`. Você também precisará importar `@solana/web3.js` e `Movie`.
 
 ```tsx
 import * as web3 from '@solana/web3.js'
@@ -176,7 +176,7 @@ export class MovieCoordinator {
 }
 ```
 
-The key to paging is to prefetch all the accounts without data. Let’s fill in the body of `prefetchAccounts` to do this and set the retrieved public keys to the static `accounts` property.
+A chave para a paginação é pré-carregar todas as contas sem dados. Vamos preencher o corpo da função `prefetchAccounts` para fazer isso e definir as chaves públicas recuperadas na propriedade estática `accounts`.
 
 ```tsx
 static async prefetchAccounts(connection: web3.Connection) {
@@ -191,7 +191,7 @@ static async prefetchAccounts(connection: web3.Connection) {
 }
 ```
 
-Now, let’s fill in the `fetchPage` method. First, if the accounts haven’t been prefetched yet, we’ll need to do that. Then, we can get the account public keys that correspond to the requested page and call `connection.getMultipleAccountsInfo`. Finally, we deserialize the account data and return the corresponding `Movie` objects.
+Agora, vamos preencher o método `fetchPage`. Primeiro, se as contas ainda não foram pré-carregadas, precisamos fazer isso. Em seguida, podemos obter as chaves públicas das contas que correspondem à página solicitada e chamar `connection.getMultipleAccountsInfo`. Por fim, desserializamos os dados da conta e retornamos os objetos `Movie` correspondentes.
 
 ```tsx
 static async fetchPage(connection: web3.Connection, page: number, perPage: number): Promise<Movie[]> {
@@ -223,7 +223,7 @@ static async fetchPage(connection: web3.Connection, page: number, perPage: numbe
 }
 ```
 
-With that done, we can reconfigure `MovieList` to use these methods. In `MovieList.tsx`, add `const [page, setPage] = useState(1)` near the existing `useState` calls. Then, update `useEffect` to call `MovieCoordinator.fetchPage` instead of fetching the accounts inline.
+Feito isso, podemos reconfigurar a `MovieList` para usar esses métodos. Em `MovieList.tsx`, adicione `const [page, setPage] = useState(1)` perto das chamadas existentes de `useState`. Em seguida, atualize o `useEffect` para chamar `MovieCoordinator.fetchPage` em vez de buscar as contas diretamente.
 
 ```tsx
 const connection = new web3.Connection(web3.clusterApiUrl('devnet'))
@@ -239,7 +239,7 @@ useEffect(() => {
 }, [page, search])
 ```
 
-Lastly, we need to add buttons to the bottom of the list for navigating to different pages:
+Por fim, precisamos adicionar botões na parte inferior da lista para navegar entre as diferentes páginas:
 
 ```tsx
 return (
@@ -263,22 +263,22 @@ return (
 )
 ```
 
-At this point, you should be able to run the project and click between pages!
+Neste ponto, você deverá ser capaz de executar o projeto e clicar entre as páginas!
 
-### 3. Order reviews alphabetically by title
+### 3. Ordenar as avaliações alfabeticamente por título
 
-If you look at the reviews, you might notice they aren’t in any specific order. We can fix this by adding back just enough data into our data slice to help us do some sorting. The various properties in the movie review data buffer are laid out as follows
+Se você olhar as avaliações, pode notar que elas não estão em nenhuma ordem específica. Podemos corrigir isso adicionando apenas dados suficientes em nossa fatia de dados para nos ajudar a fazer alguma ordenação. As várias propriedades no buffer de dados de avaliação de filme são dispostas da seguinte forma:
 
-- `initialized` - unsigned 8-bit integer; 1 byte
-- `rating` - unsigned 8-bit integer; 1 byte
-- `title` - string; unknown number of bytes
-- `description` - string; unknown number of bytes
+- `initialized` - inteiro sem sinal de 8 bits; 1 byte
+- `rating` - inteiro sem sinal de 8 bits; 1 byte
+- `title` - string; número desconhecido de bytes
+- `description` - string; número desconhecido de bytes
 
-Based on this, the offset we need to provide to the data slice to access `title` is 2. The length, however, is indeterminate, so we can just provide what seems to be a reasonable length. I’ll stick with 18 as that will cover the length of most titles without fetching too much data every time.
+Com base nisso, o deslocamento que precisamos fornecer para a fatia de dados para acessar `title` é 2. O comprimento, no entanto, é indeterminado, então podemos fornecer o que parece ser um comprimento razoável. Vou manter 18, pois isso cobrirá o comprimento da maioria dos títulos sem buscar muitos dados toda vez.
 
-Once we’ve modified the data slice in `getProgramAccounts`, we then need to actually sort the returned array. To do this, we need to compare the part of the data buffer that actually corresponds to `title`. The first 4 bytes of a dynamic field in Borsh are used to store the length of the field in bytes. So in any given buffer `data` that is sliced the way we discussed above, the string portion is `data.slice(4, 4 + data[0])`.
+Depois de modificarmos a fatia de dados em `getProgramAccounts`, precisamos realmente ordenar o array retornado. Para fazer isso, precisamos comparar a parte do buffer de dados que corresponde ao `title`. Os primeiros 4 bytes de um campo dinâmico em Borsh são usados para armazenar o comprimento do campo em bytes. Portanto, em qualquer buffer `data` dado que seja fatiado da maneira que discutimos acima, a parte da string é `data.slice(4, 4 + data[0])`.
 
-Now that we’ve thought through this, let’s modify the implementation of `prefetchAccounts` in `MovieCoordinator`:
+Agora que resolvemos isso, vamos modificar a implementação de `prefetchAccounts` em `MovieCoordinator`:
 
 ```tsx
 static async prefetchAccounts(connection: web3.Connection, filters: AccountFilter[]) {
@@ -301,13 +301,13 @@ static async prefetchAccounts(connection: web3.Connection, filters: AccountFilte
 }
 ```
 
-And just like that, you should be able to run the app and see the list of movie reviews ordered alphabetically.
+E assim, você deve ser capaz de executar o aplicativo e ver a lista de avaliações de filmes ordenada alfabeticamente.
 
-### 4. Add search
+### 4. Adicionar pesquisa
 
-The last thing we’ll do to improve this app is to add some basic search capability. Let’s add a `search` parameter to `prefetchAccounts` and reconfigure the body of the function to use it.
+A última coisa que faremos para melhorar este aplicativo é adicionar alguma capacidade de pesquisa básica. Vamos adicionar um parâmetro `search` a `prefetchAccounts` e reconfigurar o corpo da função para usá-lo.
 
-We can use the `filters` property of the `config` parameter of `getProgramAccounts` to filter accounts by specific data. The offset to the `title` fields is 2, but the first 4 bytes are the length of the title so the actual offset to the string itself is 6. Remember that the bytes need to be base 58 encoded, so let’s install and import `bs58`.
+Podemos usar a propriedade `filters` do parâmetro `config` de `getProgramAccounts` para filtrar contas por dados específicos. O deslocamento para os campos `title` é 2, mas os primeiros 4 bytes são o comprimento do título, então o deslocamento real para a string em si é 6. Lembre-se de que os bytes precisam ser codificados em base 58, então vamos instalar e importar `bs58`.
 
 ```tsx
 import bs58 from 'bs58'
@@ -343,7 +343,7 @@ static async prefetchAccounts(connection: web3.Connection, search: string) {
 }
 ```
 
-Now, add a `search` parameter to `fetchPage` and update its call to `prefetchAccounts` to pass it along. We’ll also need to add a `reload` boolean parameter to `fetchPage` so that we can force a refresh of the account prefetching every time the search value changes.
+Agora, adicione um parâmetro `search` a `fetchPage` e atualize sua chamada para `prefetchAccounts` para passá-lo adiante. Também precisaremos adicionar um parâmetro booleano `reload` a `fetchPage` para que possamos forçar uma atualização do pré-carregamento das contas sempre que o valor da busca mudar.
 
 ```tsx
 static async fetchPage(connection: web3.Connection, page: number, perPage: number, search: string, reload: boolean = false): Promise<Movie[]> {
@@ -375,9 +375,9 @@ static async fetchPage(connection: web3.Connection, page: number, perPage: numbe
 }
 ```
 
-With that in place, let’s update the code in `MovieList` to call this properly.
+Com isso implementado, vamos atualizar o código em `MovieList` para chamar isso corretamente.
 
-First, add `const [search, setSearch] = useState('')` near the other `useState` calls. Then update the call to `MovieCoordinator.fetchPage` in the `useEffect` to pass the `search` parameter and to reload when `search !== ''`.
+Primeiro, adicione `const [search, setSearch] = useState('')` perto das outras chamadas de `useState`. Em seguida, atualize a chamada para `MovieCoordinator.fetchPage` no `useEffect` para passar o parâmetro `search` e recarregar quando `search !== ''`.
 
 ```tsx
 const connection = new web3.Connection(web3.clusterApiUrl('devnet'))
@@ -396,7 +396,7 @@ useEffect(() => {
 }, [page, search])
 ```
 
-Finally, add a search bar that will set the value of `search`:
+Por fim, adicione uma barra de pesquisa que definirá o valor de `search`:
 
 ```tsx
 return (
@@ -419,21 +419,21 @@ return (
 )
 ```
 
-And that’s it! The app now has ordered reviews, paging, and search.
+E é isso! O aplicativo agora possui avaliações ordenadas, paginação e pesquisa.
 
-That was a lot to digest, but you made it through. If you need to spend some more time with the concepts, feel free to reread the sections that were most challenging for you and/or have a look at the [solution code](https://github.com/Unboxed-Software/solana-movie-frontend/tree/solution-paging-account-data).
+Foi bastante conteúdo para absorver, mas você conseguiu. Se precisar de mais tempo com os conceitos, sinta-se à vontade para reler as seções que foram mais desafiadoras para você e/ou dar uma olhada no [código de solução](https://github.com/Unboxed-Software/solana-movie-frontend/tree/solution-paging-account-data).
 
-# Challenge
+# Desafio
 
-Now it’s your turn to try and do this on your own. Using the Student Intros app from last lesson, add paging, ordering alphabetically by name, and searching by name.
+Agora é sua vez de tentar fazer isso por conta própria. Usando o aplicativo Student Intros da última lição, adicione paginação, ordenação alfabética por nome e pesquisa por nome.
 
-![Screenshot of Student Intros frontend](../assets/student-intros-frontend.png)
+![Captura de tela do frontend do Student Intros](../assets/student-intros-frontend.png)
 
-1. You can build this from scratch or you can download the [starter code](https://github.com/Unboxed-Software/solana-student-intros-frontend/tree/solution-deserialize-account-data)
-2. Add paging to the project by prefetching accounts without data, then only fetching the account data for each account when it’s needed.
-3. Order the accounts displayed in the app alphabetically by name.
-4. Add the ability to search through introductions by a student’s name.
+1. Você pode construir isso do zero ou baixar o [código inicial aqui](https://github.com/Unboxed-Software/solana-student-intros-frontend/tree/solution-deserialize-account-data).
+2. Adicione paginação ao projeto pré-carregando contas sem dados e, em seguida, buscando os dados da conta para cada conta quando necessário.
+3. Ordene as contas exibidas no aplicativo alfabeticamente por nome.
+4. Adicione a capacidade de pesquisar introduções pelo nome do aluno.
 
-This is challenging. If you get stuck, feel free to reference the [solution code](https://github.com/Unboxed-Software/solana-student-intros-frontend/tree/solution-paging-account-data). With this you complete Module 1! How was your experience? Feel free to [share some quick feedback](https://airtable.com/shrOsyopqYlzvmXSC?prefill_Module=Module%201), so that we can continue to improve the course!
+Isso é desafiador. Se você tiver dúvidas, sinta-se à vontade para consultar o [código de solução](https://github.com/Unboxed-Software/solana-student-intros-frontend/tree/solution-paging-account-data). Com isso, você completa o Módulo 1! Como foi sua experiência? Sinta-se à vontade para [compartilhar um feedback rápido](https://airtable.com/shrOsyopqYlzvmXSC?prefill_Module=Module%201), para que possamos continuar a melhorar o curso!
 
-As always, get creative with these challenges and take them beyond the instructions if you want! 
+Como sempre, seja criativo com esses desafios e leve-os além das instruções, se desejar! 

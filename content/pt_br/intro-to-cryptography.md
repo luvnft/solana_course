@@ -1,97 +1,97 @@
 ---
-title: Cryptography and the Solana Network
+title: Criptografia e a Rede Solana
 objectives:
-- Understand symmetric and asymmetric cryptography
-- Explain keypairs
-- Generate a new keypair
-- Load a keypair from an env file
+- Compreender criptografia simétrica e assimétrica
+- Explicar pares de chaves
+- Gerar um novo par de chaves
+- Carregar um par de chaves de um arquivo env
 ---
 
-# TL;DR
+# Resumo
 
-- A **keypair** is a matching pair of **public key** and **secret key**. 
-- The **public key** is used as an “address” that points to an account on the Solana network. A public key can be shared with anyone.
-- The **secret key** is used to verify authority over the account. As the name suggests, you should always keep secret keys *secret*.
-- `@solana/web3.js` provides helper functions for creating a brand new keypair, or for constructing a keypair using an existing secret key. 
+- Um **par de chaves** é um par correspondente de **chave pública** e **chave secreta**.
+- A **chave pública** é usada como um “endereço” que aponta para uma conta na rede Solana. Uma chave pública pode ser compartilhada com qualquer pessoa.
+- A **chave secreta** é usada para verificar a autoridade sobre a conta. Como o nome sugere, você deve sempre manter as chaves secretas *em segredo*.
+- `@solana/web3.js` fornece funções auxiliares para criar um novo par de chaves ou para construir um par de chaves usando uma chave secreta existente.
 
-# Overview
+# Visão Geral
 
-## Symmetric and Asymmetric Cryptography
+## Criptografia Simétrica e Assimétrica
 
-'Cryptography' is literally the study of hiding information. There's two main types of cryptography you'll encounter day to day:
+'Criptografia' é literalmente o estudo de esconder informações. Há dois tipos principais de criptografia que você encontrará no dia a dia:
 
-**Symmetric Cryptography** is where the same key is used to encrypt and decrypt. It's hundreds of years old, and has been used by everyone from the ancient Egyptians to Queen Elizabeth I.
+**Criptografia Simétrica** é onde a mesma chave é usada para criptografar e descriptografar. Tem centenas de anos e foi usada por todos, desde os antigos egípcios até a Rainha Elizabeth I.
 
-There's a variety of symmetric cryptography algorithms, but the most common you'll see today are AES and Chacha20.
+Há uma variedade de algoritmos de criptografia simétrica, mas os mais comuns que você verá hoje são AES e Chacha20.
 
-**Asymmetric Cryptography**
+**Criptografia Assimétrica**
 
-- Asymmetric cryptography - also called '[public key cryptography](https://en.wikipedia.org/wiki/Public-key_cryptography)' was developed in the 1970s. In asymmetric cryptography, participants have pairs of keys (or **keypairs**). Each keypair consists of a **secret key** and a **public key**. Asymmetric encryption works differently from symmetric encryption, and can do different things:
+- Criptografia assimétrica - também chamada de '[criptografia de chave pública](https://en.wikipedia.org/wiki/Public-key_cryptography)' foi desenvolvida nos anos 1970. Na criptografia assimétrica, os participantes têm pares de chaves (ou **keypairs**). Cada par de chaves consiste em uma **chave secreta** e uma **chave pública**. A criptografia assimétrica funciona de maneira diferente da criptografia simétrica e pode fazer coisas diferentes:
 
-- **Encryption**: if it's encrypted with a public key, only the secret key from the same keypair can be used to read it
-- **Signatures**: if it's encrypted with a secret key, the public key from the same keypair can be used to prove the holder of the secret key signed it.
-- You can even use asymmetric cryptography to work out a good key to use for symmetric cryptography! This is called **key exchange** where you use your public keys and a recipients public key to come up with a 'session' key. 
-- There's a variety of symmetric cryptography algorithms, but the most common you'll see today are variants of ECC or RSA.
+  - **Encriptação**: se algo for criptografado com uma chave pública, apenas a chave secreta do mesmo par de chaves pode ser usada para lê-lo.
+  - **Assinaturas**: se algo for criptografado com uma chave secreta, a chave pública do mesmo par de chaves pode ser usada para provar que o titular da chave secreta a assinou.
+  - Você pode até usar criptografia assimétrica para descobrir uma boa chave para usar na criptografia simétrica! Isso é chamado de **troca de chaves** onde você usa suas chaves públicas e uma chave pública do destinatário para criar uma chave de 'sessão'.
+  - Há uma variedade de algoritmos de criptografia simétrica, mas os mais comuns que você verá hoje são variantes de ECC ou RSA.
 
-Asymmetric encryption is very popular: 
- - You bank card has a secret key inside it, that's used to sign transactions.
+A criptografia assimétrica é muito popular:
+ - Seu cartão bancário tem uma chave secreta dentro dele, que é usada para assinar transações.
 
-   Your bank can confirm you made the transaction by checking them with the matching public key.
- - Websites include a public key in their certificate, your browser will use this public key to encrypt the data (like personal information, login details, and credit card numbers) it sends to the web page. 
+   Seu banco pode confirmar que você fez a transação verificando-as com a chave pública correspondente.
+ - Os sites incluem uma chave pública em seu certificado, seu navegador usará esta chave pública para criptografar os dados (como informações pessoais, detalhes de login e números de cartão de crédito) que envia para a página da web.
 
-   The website has the matching private key, so the website can read the data. 
- - Your electronic passport was signed by the country that issued it, to ensure the passport isn't forged. 
+   O site tem a chave privada correspondente, então o site pode ler os dados.
+ - Seu passaporte eletrônico foi assinado pelo país que o emitiu, para garantir que o passaporte não seja falsificado.
 
-   The electronic passport gates can confirm this usin the public key of your issuing country.
- - The messaging apps on your phone use key exchange to make a session key. 
+   Os portões de passaporte eletrônico podem confirmar isso usando a chave pública do seu país de emissão.
+ - Os aplicativos de mensagens no seu telefone usam troca de chaves para fazer uma chave de sessão.
 
-In short, cryptography is all around us. Solana, as well as other blockchains, are but one use of cryptography.    
+Em resumo, a criptografia está em toda parte. Solana, assim como outras blockchains, é apenas um dos usos da criptografia.
 
-## Solana uses public keys as addresses
+## Solana usa chaves públicas como endereços
 
-![Solana wallet addresses](../assets/wallet-addresses.svg)
+![Endereços de carteira Solana](../assets/wallet-addresses.svg)
 
-People participating in the Solana network have at least one keypair. In Solana:
+Pessoas participando da rede Solana têm pelo menos um par de chaves. Na Solana:
 
-- The **public key** is used as an “address” that points to an account on the Solana network. Even friendly names - like `example.sol` - point to addresses like `dDCQNnDmNbFVi8cQhKAgXhyhXeJ625tvwsunRyRc7c8`
+- A **chave pública** é usada como um "endereço" que aponta para uma conta na rede Solana. Mesmo nomes amigáveis - como `example.sol` - apontam para endereços como `dDCQNnDmNbFVi8cQhKAgXhyhXeJ625tvwsunRyRc7c8`
 
-- The **secret key** is used to verify authority over that keypair. If you have the secret key for an address, you control the tokens inside that address. For this reason, as the name suggests, you should always keep secret keys *secret*.
-## Using @solana/web3.js to make a keypair
+- A **chave secreta** é usada para verificar a autoridade sobre esse par de chaves. Se você tem a chave secreta de um endereço, você controla os tokens dentro desse endereço. Por essa razão, como o nome sugere, você deve sempre manter as chaves secretas *em segredo*.
+## Usando @solana/web3.js para criar um par de chaves
 
-You can use the Solana blockchain from either the browser or node.js with the `@solana/web3.js` npm module.  Set up a project how you normally would, then [use `npm`](https://nodesource.com/blog/an-absolute-beginners-guide-to-using-npm/) to install `@solana/web3.js`
+Você pode usar a blockchain Solana tanto do navegador quanto do node.js com o módulo npm `@solana/web3.js`. Configure um projeto como você normalmente faria, e então [use o `npm`](https://nodesource.com/blog/an-absolute-beginners-guide-to-using-npm/) para instalar `@solana/web3.js`
 
 ```
 npm i @solana/web3.js
 ```
 
-We’ll cover a lot of the [web3.js](https://docs.solana.com/developing/clients/javascript-reference) gradually throughout this course, but you can also check out the [official web3.js documentation](https://docs.solana.com/developing/clients/javascript-reference).
+Vamos cobrir muitos aspectos do [web3.js](https://docs.solana.com/developing/clients/javascript-reference) gradualmente ao longo deste curso, mas você também pode conferir a [documentação oficial do web3.js](https://docs.solana.com/developing/clients/javascript-reference).
 
-To send tokens, send NFTS, or read and write data Solana, you'll need your own keypair. To make a new keypair, use the `Keypair.generate()` function from  `@solana/web3.js`: 
+Para enviar tokens, enviar NFTS ou ler e escrever dados na Solana, você precisará do seu próprio par de chaves. Para criar um novo par de chaves, use a função `Keypair.generate()` do `@solana/web3.js`:
 
 ```typescript
 import { Keypair } from "@solana/web3.js";
 
 const keypair = Keypair.generate();
 
-console.log(`The public key is: `, keypair.publicKey.toBase58());
-console.log(`The secret key is: `, keypair.secretKey);
+console.log(`A chave pública é: `, keypair.publicKey.toBase58());
+console.log(`A chave secreta é: `, keypair.secretKey);
 ```
 
-## ⚠️ Don't include secret keys in your source code
+## ⚠️ Não inclua chaves secretas no seu código-fonte
 
-Since the keypair can be regenerated from the secret key, we usually only store the secret key, and restore the keypair from the secret key. 
+Uma vez que o par de chaves pode ser regenerado a partir da chave secreta, normalmente armazenamos apenas a chave secreta e restauramos o par de chaves a partir da chave secreta.
 
-Additionally, since the secret key gives authority over the address, we don't store secret keys in source code. Instead, we:
+Adicionalmente, como a chave secreta dá autoridade sobre o endereço, não armazenamos chaves secretas no código-fonte. Em vez disso, nós:
 
-- Put secret keys in a `.env` file 
-- Add  `.env`  to `.gitignore` so the `.env` file is not committed.
+- Colocamos chaves secretas em um arquivo `.env`
+- Adicionamos `.env` ao `.gitignore` para que não seja feito o commit do arquivo `.env`.
 
-## Loading an existing keypair
+## Carregando um par de chaves existente
 
-If you already have a keypair you’d like to use, you can load a `Keypair` from an existing secret key stored in the filesystem or an `.env` file. In node.js, the  `@solana-developers/node-helpers` npm package includes some extra functions:
+Se você já tem um par de chaves que gostaria de usar, pode carregar um `Keypair` de uma chave secreta existente armazenada no sistema de arquivos ou em um arquivo `.env`. No node.js, o pacote npm `@solana-developers/node-helpers` inclui algumas funções extras:
 
- - To use an `.env` file use `getKeypairFromEnvironment()`
- - To use a Solana CLI file use `getKeypairFromFile()`
+ - Para usar um arquivo `.env`, use `getKeypairFromEnvironment()`
+ - Para usar um arquivo da CLI da Solana, use `getKeypairFromFile()`
 
 ```typescript
 import * as dotenv from "dotenv";
@@ -102,13 +102,13 @@ dotenv.config();
 const keypair = getKeypairFromEnvironment("SECRET_KEY");
 ```
 
-You know how to make and load keypairs! Let’s practice what we’ve learned.
+Agora você sabe como criar e carregar pares de chaves! Vamos praticar o que aprendemos.
 
-# Demo
+# Demonstração
 
-### Installation
+### Instalação
 
-Make a new directory, install TypeScript, Solana web3.js and esrun:
+Crie um novo diretório, instale o TypeScript, o Solana web3.js e o esrun:
 
 ```bash
 mkdir generate-keypair
@@ -117,53 +117,53 @@ npm init -y
 npm install typescript @solana/web3.js @digitak/esrun @solana-developers/node-helpers
 ```
 
-Make a new file called `generate-keypair.ts`
+Crie um novo arquivo chamado `generate-keypair.ts`:
 
 ```typescript
 import { Keypair } from "@solana/web3.js";
 const keypair = Keypair.generate();
-console.log(`✅ Generated keypair!`)
+console.log(`✅ Par de chaves gerado!`)
 ```
 
-Run `npx esrun generate-keypair.ts`. You should see the text:
+Execute `npx esrun generate-keypair.ts`. Você deverá ver o texto:
 
 ```
-✅ Generated keypair!
+✅ Par de chaves gerado!
 ```
 
-Each `Keypair` has a `publicKey` and `secretKey` property. Update the file:
+Cada `Keypair` tem uma propriedade `publicKey` e `secretKey`. Atualize o arquivo:
 
 ```typescript
 import { Keypair } from "@solana/web3.js";
 
 const keypair = Keypair.generate();
 
-console.log(`The public key is: `, keypair.publicKey.toBase58());
-console.log(`The secret key is: `, keypair.secretKey);
-console.log(`✅ Finished!`);
+console.log(`A chave pública é: `, keypair.publicKey.toBase58());
+console.log(`A chave secreta é: `, keypair.secretKey);
+console.log(`✅ Finalizado!`);
 ```
 
-Run `npx esrun generate-keypair.ts`. You should see the text:
+Execute `npx esrun generate-keypair.ts`. Você deverá ver o texto:
 
 ```
-The public key is:  764CksEAZvm7C1mg2uFmpeFvifxwgjqxj2bH6Ps7La4F
-The secret key is:  Uint8Array(64) [
-  (a long series of numbers) 
+A chave pública é:  764CksEAZvm7C1mg2uFmpeFvifxwgjqxj2bH6Ps7La4F
+A chave secreta é:  Uint8Array(64) [
+  (uma longa série de números) 
 ]
-✅ Finished!
+✅ Finalizado!
 ```
 
-## Loading an existing keypair from an .env file
+## Carregando um par de chaves existente de um arquivo .env
 
-To ensure that your secret key stays secure, we recommend injecting the secret key using a `.env` file:
+Para garantir que sua chave secreta permaneça segura, recomendamos injetar a chave secreta usando um arquivo `.env`:
 
-Make a new file called `.env` with the contents of the key you made earlier:
+Crie um novo arquivo chamado `.env` com o conteúdo da chave que você fez anteriormente:
 
 ```env
-SECRET_KEY="[(a series of numbers)]"
+SECRET_KEY="[(uma série de números)]"
 ```
 
-We can then load the keypair from the environment. Update `generate-keypair.ts`:
+Então podemos carregar o par de chaves do ambiente. Atualize `generate-keypair.ts`:
 
 ```typescript
 import * as dotenv from "dotenv";
@@ -174,14 +174,14 @@ dotenv.config();
 const keypair = getKeypairFromEnvironment("SECRET_KEY");
 
 console.log(
-  `✅ Finished! We've loaded our secret key securely, using an env file!`
+  `✅ Pronto! Carregamos nossa chave secreta com segurança, usando um arquivo env!`
 );
 ```
 
-Run `npx esrun generate-keypair.ts`. You should see the following result:
+Execute `npx esrun generate-keypair.ts`. Você deverá ver o seguinte resultado:
 
 ```text
-✅ Finished! We've loaded our secret key securely, using an env file!
+✅ Pronto! Carregamos nossa chave secreta com segurança, usando um arquivo env!
 ```
 
-We've now learnt about keypairs, and how to store secret keys securely on Solana. In the next chapter, we'll use them! 
+Agora aprendemos sobre pares de chaves e como armazenar chaves secretas de forma segura na Solana. No próximo capítulo, vamos usá-las! 
